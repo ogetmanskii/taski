@@ -123,7 +123,7 @@ namespace devkit {
     }
 
     // Обход активных процессов с callback-функцией
-    static void ForEachActiveProcess(std::function<bool(DWORD processId)> callback) {
+    static void ForEachActiveProcess(std::function<bool(DWORD processId)>& callback) {
         auto processIds = GetActiveProcessIds();
 
         for (DWORD pid : processIds) {
