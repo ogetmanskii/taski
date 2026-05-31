@@ -1,0 +1,17 @@
+#pragma once
+
+#include <string>
+
+namespace Version {
+    constexpr int MAJOR = @PROJECT_VERSION_MAJOR@;
+    constexpr int MINOR = @PROJECT_VERSION_MINOR@;
+    constexpr int PATCH = @PROJECT_VERSION_PATCH@;
+    constexpr int BUILD = @PROJECT_VERSION_TWEAK@;
+    
+    constexpr const char* VERSION_STRING = "@PROJECT_VERSION@";
+    constexpr const char* VERSION_FULL = "@PROJECT_VERSION_FULL@";
+    
+    inline std::string GetVersion() {
+        return VERSION_FULL;
+    }
+}

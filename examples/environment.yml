@@ -1,0 +1,106 @@
+# Можно устанавливать значения в формате Inja Templates
+# Подробнее об Inja: https://github.com/pantor/inja
+# {% set pgsql_home="C:\\Programs\\pgsql" %}
+# {% set nginx_home="C:\\Projects\\programs\\nginx" %}
+# {% set node="C:\\Programs\\node\\node.exe" %}
+# Все объявленные переменные будут доступны через подстановки в формате: ${pgsql_home}, ${nginx_home}, ${node}
+services:
+  serviceName:
+    # Название сервиса - опционально.
+    # Если name не указан, тогда именем сервиса будет считаться тэг внутри секции services
+    name: "ServiceName"
+    
+    # Список зависимостей для сервиса
+    # Утилита будет сортировать список сервисов таким образом, 
+    # чтобы сначала запускались те сервисы, от которых зависят другие сервисы.
+    # Утилита будет запускать сервисы из списка dependsOn перед зависимым сервисом, если они еще не запущены.
+    dependsOn:
+      - anotherServiceName
+      - oneMoreServiceName
+    
+    # Рабочая директория для сервиса
+    workingDirectory: "/dir"
+    
+    # Переменные окружения для сервиса
+    environment:
+      PGPORT: 15433
+    
+    # Shell команда для запуска сервиса
+    startCommand: bin\pg_ctl.exe start -D data -l postgres.txt
+
+    # Отсоединиться от процесса через указанное количество секунд.
+    # После отсоединения сервис считается запущенным.
+    detachAfterSeconds: 3
+    
+    # Отсоединиться от процесса после получения указанного сообщения в консоли.
+    detachAfterMessage: Server started
+    # Если detachAfterSeconds и detachAfterMessage не указаны, тогда Утилита будет ждать полного завершения команды startCommand.
+
+    # Процесс для мониторинга. Утилита определяет статус сервиса по наличию активного процесса в системе.
+    monitorProcess: ${PGSQL_HOME}/bin/postgres.exe
+
+    # Второй способ указать monitorProcess - с уточнением аргументов командной строки искомого процесса.
+    # В шаблонах args можно указывать * (означает 0, 1 или множество любых символов) и ? (означает один любой символ).
+    monitorProcess: 
+      executable: ${TEST_EXE}
+      args: "*--flag Something *"
+    # Если не указан monitorProcess, тогда Утилита не может определить активность сервиса, 
+    # и, соответственно, такой сервис становится start-only сервисом (его можно только запустить, но не остановить).
+    
+    # Shell команда для остановки сервиса
+    # Если stopCommand не указана, тогда для остановки сервиса Утилита будет посылать SIGTERM всем процессам,
+    #  подпадающим под фильтр monitorProcess.
+    stopCommand: bin\pg_ctl stop -D data
+
+tasks:
+  # Простые задачи можно определять как shell команды
+  helloWorldTask:
+    # Название задачи - опционально
+    name: Print Hello World
+    # Рабочая директория для shell команды
+    workingDirectory: .
+    # Переменные окружения для команды
+    environment:
+      HELLO_WORLD: "Hello World"
+    # Команда
+    command: echo %HELLO_WORLD%
+
+  # Более сложные задачи можно определять в виде файлов
+  # Поддерживаются lua, bat / cmd, sh файлы
+  # Lua скрипты выполняются через встроенный интерпретатор языка Lua
+  luaTask:
+    name: Lua Script
+    file: Lua-Task.lua
+  batTask:
+    name: Bat Script
+    file: Bat-Task.bat
+  # sh файлы выполняются через WSL
+  shellTask:
+    name: Shell Script
+    file: Shell-Task.sh
+
+  mkdir-data:
+    # Задачи можно скрывать из списка задач
+    # Например, задачи, которые выполняются только как зависимости от других задач
+    hidden: true
+    command: mkdir ".data"
+    # Можно перечислить коды возврата, которые считать успешным выполнением задачи
+    exitCodes:
+      - 0
+      - 1
+  rm-file:
+    hidden: true
+    workingDirectory: .data
+    command: del file.txt
+    exitCodes:
+      - 0
+      - 1
+  write-file:
+    name: "Write file"
+    workingDirectory: .data
+    # Список задач, от которых зависит данная задача
+    # Утилита будет выполнять указанные задачи перед зависимой задачей
+    dependsOn:
+      - mkdir-data
+      - rm-file
+    command: echo "Hello World" > file.txt

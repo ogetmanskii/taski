@@ -1,0 +1,32 @@
+# {% set pgsql_home="C:\\prog\\pgsql" %}
+# {% set nginx_home="C:\\Projects\\programs\\nginx" %}
+# {% set node="C:\\Projects\\programs\\node\\node.exe" %}
+services:
+
+  postgres:
+    name: Postgres Server
+    dependsOn:
+      - Nginx
+    workingDirectory: ${pgsql_home}
+    environment:
+      PGPORT: 5432
+    startCommand: bin\pg_ctl start -D data -l postgres.txt
+    detachAfterSeconds: 10
+    monitorProcess: bin\postgres.exe
+    stopCommand: bin\pg_ctl stop -D data
+
+  nginx:
+    name: Nginx
+    workingDirectory: ${nginx_home}
+    startCommand: nginx
+    detachAfterSeconds: 1
+    monitorProcess: nginx.exe
+
+  config-server:
+    name: Config server
+    dependsOn:
+      - Nginx
+    workingDirectory: C:\Projects\programs\frontend_config_server
+    startCommand: ${node} server-config.umd.cjs
+    detachAfterMessage: is running on the port
+    monitorProcess: ${node}
