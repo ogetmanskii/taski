@@ -85,16 +85,12 @@ tasks:
     hidden: true
     command: mkdir ".data"
     # Можно перечислить коды возврата, которые считать успешным выполнением задачи
-    exitCodes:
-      - 0
-      - 1
+    exitCodes: [0, 1]
   rm-file:
     hidden: true
     workingDirectory: .data
     command: del file.txt
-    exitCodes:
-      - 0
-      - 1
+    exitCodes: [0, 1]
   write-file:
     name: "Write file"
     workingDirectory: .data
