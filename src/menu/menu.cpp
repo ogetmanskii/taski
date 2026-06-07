@@ -49,7 +49,7 @@ namespace devkit {
         std::vector<MenuChoice> menuChoices,
         const std::string& prompt = "> ",
         int minKeyWidth = 1,
-        int columnSpacing = 1) {
+        int columnSpacing = 2) {
 
         auto bounds = GetConsoleBounds();
         int& consoleWidth = bounds.first;
