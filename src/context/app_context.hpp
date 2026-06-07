@@ -16,14 +16,6 @@ namespace devkit {
 
     namespace fs = std::filesystem;
 
-    static inline size_t CalcServiceNameMaxLength(std::vector<std::shared_ptr<Service>>& services) {
-        size_t max = 0;
-        for (auto& service : services) {
-            max = std::max(max, service->definition.name.size());
-        }
-        return max;
-    }
-
     static inline std::unordered_map<std::string, std::shared_ptr<Service>> BuildNameToServiceMap(
         const std::vector<std::shared_ptr<Service>>& services) {
         std::unordered_map<std::string, std::shared_ptr<Service>> map;
@@ -45,7 +37,6 @@ namespace devkit {
     class AppContext {
     private:
         const fs::path path;
-        const size_t serviceNameMaxLength;
         const std::unordered_map<std::string, std::string> env;
         const std::unordered_map<std::string, std::shared_ptr<Service>> nameToService;
         const std::unordered_map<std::string, std::shared_ptr<Task>> nameToTask;
@@ -58,7 +49,6 @@ namespace devkit {
             std::vector<std::shared_ptr<Service>> services,
             std::vector<std::shared_ptr<Task>> tasks
         ) : 
-            serviceNameMaxLength(CalcServiceNameMaxLength(services)),
             nameToService(BuildNameToServiceMap(services)),
             nameToTask(BuildNameToTaskMap(tasks)),
             path(std::move(path)),
@@ -73,10 +63,6 @@ namespace devkit {
 
         const std::vector<std::shared_ptr<Task>>& GetTasks() const {
             return tasks;
-        }
-
-        const size_t GetServiceNameMaxLength() const {
-            return serviceNameMaxLength;
         }
 
         const std::optional<std::shared_ptr<Service>> GetService(const std::string& name) const {

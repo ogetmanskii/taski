@@ -100,12 +100,12 @@ static void RunUserMenu(std::shared_ptr<AppContext> context) {
         }
         for (auto& service : context->GetServices()) {
             auto status = service->Status(activeProcesses);
-            std::string serviceName = PadLeft(service->definition.name, context->GetServiceNameMaxLength());
+            const std::string& serviceName = service->definition.name;
             if (status == ServiceStatus::UP) {
                 menu.push_back({
-                    std::format("{} {}", serviceName, "UP"),
-                    std::format("{} {}", serviceName, color::green("UP")),
-                    std::format("Stop {}", service->definition.name),
+                    std::format("{} ({})", serviceName, "UP"),
+                    std::format("{} ({})", serviceName, color::green("UP")),
+                    std::format("Stop {}", serviceName),
                     std::nullopt,
                     [&](AppContext& ctx, PipelineContext& pipeline) {
                         RegisterStopServiceAction(ctx, pipeline, service);
@@ -113,9 +113,9 @@ static void RunUserMenu(std::shared_ptr<AppContext> context) {
                 });
             } else if (status == ServiceStatus::DOWN) {
                 menu.push_back({
-                    std::format("{} {}", serviceName, "DOWN"),
-                    std::format("{} {}", serviceName, color::red("DOWN")),
-                    std::format("Start {}", service->definition.name),
+                    std::format("{} ({})", serviceName, "DOWN"),
+                    std::format("{} ({})", serviceName, color::red("DOWN")),
+                    std::format("Start {}", serviceName),
                     std::nullopt,
                     [&](AppContext& ctx, PipelineContext& pipeline) {
                         RegisterStartServiceAction(ctx, pipeline, service);
@@ -125,7 +125,7 @@ static void RunUserMenu(std::shared_ptr<AppContext> context) {
                 menu.push_back({
                     std::format("{}", serviceName),
                     std::format("{}", serviceName),
-                    std::format("Run {}", service->definition.name),
+                    std::format("Run {}", serviceName),
                     std::nullopt,
                     [&](AppContext& ctx, PipelineContext& pipeline) {
                         RegisterStartServiceAction(ctx, pipeline, service);
@@ -180,7 +180,7 @@ static void ExecuteCommands(std::shared_ptr<AppContext> ctx, const Args& args) {
         auto activeProcesses = GetActiveProcesses();
         for (auto& service : ctx->GetServices()) {
             auto status = service->Status(activeProcesses);
-            std::string serviceName = PadLeft(service->definition.name, ctx->GetServiceNameMaxLength());
+            const std::string& serviceName = service->definition.name;
             if (status == ServiceStatus::UP) {
                 info("{} {}", serviceName, color::green("UP"));
             } else if (status == ServiceStatus::DOWN) {
