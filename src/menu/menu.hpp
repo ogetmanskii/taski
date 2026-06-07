@@ -9,7 +9,8 @@
 
 namespace devkit {
     struct MenuItem {
-        std::string title;
+        std::string rawTitle;
+        std::string decoratedTitle;
         std::string description;
         std::optional<std::string> shortcut;
         std::function<void(AppContext&, PipelineContext&)> pipelineAction;

@@ -84,13 +84,15 @@ static void RunUserMenu(std::shared_ptr<AppContext> context) {
         std::vector<MenuItem> menu;
         if (context->GetServices().size() > 1) {
             menu.push_back({
-                .title = "Start All",
+                .rawTitle = "Start All",
+                .decoratedTitle = "Start All",
                 .description = "Start All Services",
                 .shortcut = std::nullopt,
                 .pipelineAction = RegisterStartAllServicesAction
             });
             menu.push_back({
-                .title = "Stop All",
+                .rawTitle = "Stop All",
+                .decoratedTitle = "Stop All",
                 .description = "Stop All Services",
                 .shortcut = std::nullopt,
                 .pipelineAction = RegisterStopAllServicesAction
@@ -101,6 +103,7 @@ static void RunUserMenu(std::shared_ptr<AppContext> context) {
             std::string serviceName = PadLeft(service->definition.name, context->GetServiceNameMaxLength());
             if (status == ServiceStatus::UP) {
                 menu.push_back({
+                    std::format("{} {}", serviceName, "UP"),
                     std::format("{} {}", serviceName, color::green("UP")),
                     std::format("Stop {}", service->definition.name),
                     std::nullopt,
@@ -110,6 +113,7 @@ static void RunUserMenu(std::shared_ptr<AppContext> context) {
                 });
             } else if (status == ServiceStatus::DOWN) {
                 menu.push_back({
+                    std::format("{} {}", serviceName, "DOWN"),
                     std::format("{} {}", serviceName, color::red("DOWN")),
                     std::format("Start {}", service->definition.name),
                     std::nullopt,
@@ -119,6 +123,7 @@ static void RunUserMenu(std::shared_ptr<AppContext> context) {
                 });
             } else {
                 menu.push_back({
+                    std::format("{}", serviceName),
                     std::format("{}", serviceName),
                     std::format("Run {}", service->definition.name),
                     std::nullopt,
@@ -135,12 +140,14 @@ static void RunUserMenu(std::shared_ptr<AppContext> context) {
             menu.push_back({
                 task->GetName(),
                 task->GetName(),
+                task->GetName(),
                 std::nullopt,
                 [&](AppContext& ctx, PipelineContext& pipeline) {
                     RegisterRunTaskAction(ctx, pipeline, task);
                 }
             });
         }
+        
         if (devkit::ShowMenu(menu, context)) {
             while (!IsReturn(_getch())) {
 
