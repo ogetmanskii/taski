@@ -28,20 +28,15 @@ namespace devkit {
         }
     }
 
-    static int GetConsoleWidth() {
+    static std::pair<int /* width */, int /* height */> GetConsoleBounds() {
         CONSOLE_SCREEN_BUFFER_INFO csbi;
         if (GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &csbi)) {
-            return csbi.srWindow.Right - csbi.srWindow.Left + 1;
+            return std::make_pair(
+                csbi.srWindow.Right - csbi.srWindow.Left + 1, 
+                csbi.srWindow.Bottom - csbi.srWindow.Top + 1
+            );
         }
-        return 80;
-    }
-
-    static int GetConsoleHeight() {
-        CONSOLE_SCREEN_BUFFER_INFO csbi;
-        if (GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &csbi)) {
-            return csbi.srWindow.Bottom - csbi.srWindow.Top + 1;
-        }
-        return 25;
+        return std::make_pair(80, 25);
     }
 
     struct MenuChoice {
@@ -56,25 +51,22 @@ namespace devkit {
         int minKeyWidth = 1,
         int columnSpacing = 1) {
 
-        int consoleWidth = GetConsoleWidth();
-        int consoleHeight = GetConsoleHeight();
+        auto bounds = GetConsoleBounds();
+        int& consoleWidth = bounds.first;
+        int& consoleHeight = bounds.second;
 
-        // Находим максимальную длину ключа
-        size_t maxKeyWidth = minKeyWidth;
+        // Находим максимальную длину ключа и максимальную длину элемента
+        int maxKeyWidth = minKeyWidth;
+        int maxVisualWidth = 0;
         for (const auto& item : menuChoices) {
-            maxKeyWidth = std::max(maxKeyWidth, item.key.length());
-        }
-
-        // Вычисляем максимальную длину элемента с учетом цветовых кодов
-        size_t maxVisualWidth = 0;
-        for (const auto& item : menuChoices) {
-            size_t visualWidth = maxKeyWidth + 1 + item.rawTitle->length();
+            maxKeyWidth = std::max(maxKeyWidth, static_cast<int>(item.key.length()));
+            int visualWidth = maxKeyWidth + 1 + item.rawTitle->length();
             maxVisualWidth = std::max(maxVisualWidth, visualWidth);
         }
 
         maxVisualWidth += columnSpacing;
 
-        int maxColumnsByWidth = std::max(1, consoleWidth / static_cast<int>(maxVisualWidth));
+        int maxColumnsByWidth = std::max(1, consoleWidth / maxVisualWidth);
         int availableHeight = std::max(1, consoleHeight - 2);
         int optimalRowsPerColumn = std::min(availableHeight, static_cast<int>(menuChoices.size()));
         int numColumns = (menuChoices.size() + optimalRowsPerColumn - 1) / optimalRowsPerColumn;
