@@ -6,6 +6,7 @@
 #include <utility>
 #include <string>
 #include <sstream>
+#include <iomanip>
 
 namespace devkit {
     void InitConsole();
@@ -41,9 +42,10 @@ namespace devkit {
 
             if (seconds > 0 || remainingMillis > 0 || result.tellp() == 0) {
                 if (remainingMillis > 0) {
-                    result << seconds << "." << remainingMillis << "s";
+                    result << seconds << "."
+                        << std::setfill('0') << std::setw(3) << remainingMillis << "s";
                 } else {
-                    AppendIfNonZero(result, seconds, "s");
+                    result << seconds << "s";
                 }
             }
 
@@ -52,7 +54,6 @@ namespace devkit {
             }
 
             std::string str = result.str();
-            
             if (!str.empty() && str.back() == ' ') {
                 str.pop_back();
             }
