@@ -100,3 +100,13 @@ tasks:
       - mkdir-data
       - rm-file
     command: echo "Hello World" > file.txt
+
+  # В задаче можно задавать несколько команд
+  # Команды объединятся в цепочку через &&
+  chain-task:
+    name: Chain Write File
+    exitCodes: [0,1]
+    command:
+      - mkdir ".data"
+      - del file.txt
+      - echo Hello World >> file.txt

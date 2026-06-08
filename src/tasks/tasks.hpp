@@ -109,25 +109,35 @@ namespace devkit {
             bool hidden,
             std::vector<std::string> dependsOn,
             std::vector<int> exitCodes,
-            std::string command,
+            std::vector<std::string> commands,
             std::optional<std::filesystem::path> workingDirectory,
             std::optional<std::unordered_map<std::string, std::string>> env
         ) : Task(name, hidden, dependsOn, exitCodes),
-            command(std::move(command)),
+            commands(std::move(commands)),
             workingDirectory(std::move(workingDirectory)),
             env(std::move(env))
         { }
 
         void Run() const override {
             std::string cwd = workingDirectory.value_or(std::filesystem::current_path()).string();
-            int exitCode = RunShellCommand(command, cwd, env.value_or(std::unordered_map<std::string, std::string>()), false);
+            std::stringstream finalCommand;
+            for (int i = 0; i < commands.size(); i++) {
+                const std::string& command { commands[i] };
+                if (i == 0) {
+                    finalCommand << command;
+                } else {
+                    finalCommand << " && " << command;
+                }
+            }
+
+            int exitCode = RunShellCommand(finalCommand.str(), cwd, env.value_or(std::unordered_map<std::string, std::string>()), false);
             if (!IsValidExitCode(exitCode)) {
                 throw std::runtime_error("Task " + name + " exited with code: " + std::to_string(exitCode));
             }
         }
 
     private:
-        const std::string command;
+        const std::vector<std::string> commands;
         const std::optional<std::filesystem::path> workingDirectory;
         const std::optional<std::unordered_map<std::string, std::string>> env;
     };

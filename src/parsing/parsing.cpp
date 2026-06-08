@@ -17,7 +17,7 @@ using namespace inja;
 namespace devkit {
 
     static std::string RenderInjaTemplate(
-        const std::string& templateString, 
+        const std::string& templateString,
         const std::unordered_map<std::string, std::string>& env) {
 
         static Environment injaEnvironment = GetInjaEnvironment();
@@ -51,7 +51,7 @@ namespace devkit {
     }
 
     static std::unordered_map<std::string, std::string> GetMap(
-        const YAML::Node& node, 
+        const YAML::Node& node,
         const std::unordered_map<std::string, std::string>& env) {
 
         std::unordered_map<std::string, std::string> map;
@@ -72,8 +72,8 @@ namespace devkit {
     }
 
     static devkit::ServiceDefinition ParseService(
-        const std::string& tagName, 
-        const YAML::Node& serviceNode, 
+        const std::string& tagName,
+        const YAML::Node& serviceNode,
         const std::unordered_map<std::string, std::string>& env) {
 
         auto def = devkit::ServiceDefinition {
@@ -106,7 +106,7 @@ namespace devkit {
     }
 
     static void ParseServices(
-        const YAML::Node& servicesNode, 
+        const YAML::Node& servicesNode,
         const std::unordered_map<std::string, std::string>& env,
         std::vector<std::shared_ptr<Service>>& outServices) {
 
@@ -141,32 +141,40 @@ namespace devkit {
     }
 
     static std::shared_ptr<Task> ParseTask(
-        const std::string& tag, 
-        const YAML::Node& node, 
+        const std::string& tag,
+        const YAML::Node& node,
         const std::unordered_map<std::string, std::string>& env) {
 
         std::string name = RenderInjaTemplate(GetOptional<std::string>(node["name"]).value_or(tag), env);
         std::filesystem::path workingDirectory = RenderInjaTemplate(
-            GetOptional<std::string>(node["workingDirectory"]).value_or(std::filesystem::current_path().string()), 
+            GetOptional<std::string>(node["workingDirectory"]).value_or(std::filesystem::current_path().string()),
             env
         );
         std::vector<std::string> dependsOn = GetList<std::string>(node["dependsOn"]);
         bool hidden = GetBool(node["hidden"], false);
         std::vector<int> exitCodes = GetList<int>(node["exitCodes"]);
         auto& commandNode = node["command"];
-        if (commandNode && commandNode.IsScalar()) {
-            std::string command = RenderInjaTemplate(commandNode.as<std::string>(), env);
+        if (commandNode) {
+            std::vector<std::string> commands;
+            if (commandNode.IsScalar()) {
+                commands.push_back(RenderInjaTemplate(commandNode.as<std::string>(), env));
+            } else if (commandNode.IsSequence()) {
+                for (auto it = commandNode.begin(); it != commandNode.end(); it++) {
+                    commands.push_back(RenderInjaTemplate((*it).as<std::string>(), env));
+                }
+            }
             std::unordered_map<std::string, std::string> taskEnv = GetMap(node["environment"], env);
             return std::make_shared<ShellCommandTask>(
                 std::move(name),
                 hidden,
                 std::move(dependsOn),
                 std::move(exitCodes),
-                std::move(command),
+                std::move(commands),
                 std::move(workingDirectory),
                 std::move(taskEnv)
             );
         }
+
         auto& fileNode = node["file"];
         if (fileNode && fileNode.IsScalar()) {
             std::string file = RenderInjaTemplate(fileNode.as<std::string>(), env);
@@ -183,7 +191,7 @@ namespace devkit {
     }
 
     static void ParseTasks(
-        const YAML::Node& tasksNode, 
+        const YAML::Node& tasksNode,
         const std::unordered_map<std::string, std::string>& env,
         std::vector<std::shared_ptr<Task>>& outTasks) {
 
@@ -202,18 +210,18 @@ namespace devkit {
     }
 
     void ParseServicesYml(
-        const std::filesystem::path& filePath, 
+        const std::filesystem::path& filePath,
         const std::unordered_map<std::string, std::string>& env,
         std::vector<std::shared_ptr<Service>>& outServices,
         std::vector<std::shared_ptr<Task>>& outTasks
     ) {
         std::string yaml = RenderInjaTemplate(devkit::ReadFileUtf8(filePath), env);
-        
+
         YAML::Node rootNode = YAML::Load(yaml);
         if (!rootNode.IsMap()) {
             return;
         }
-        
+
         YAML::Node servicesNode = rootNode["services"];
         if (servicesNode.IsMap()) {
             ParseServices(servicesNode, env, outServices);
