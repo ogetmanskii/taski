@@ -25,7 +25,7 @@ namespace devkit {
             }
         }
         auto pipelineEnd = std::chrono::high_resolution_clock::now();
-        auto pipelineMs = std::chrono::duration_cast<std::chrono::milliseconds>(pipelineEnd - pipelineStart).count();
-        info("\n-- {}: completed in {} ms", color::green("OK"), pipelineMs);
+        auto totalMs = std::chrono::duration_cast<std::chrono::milliseconds>(pipelineEnd - pipelineStart).count();
+        info("\n-- {}: completed in {}", color::green("OK"), DurationFormatter::Format(totalMs));
     }
 }
