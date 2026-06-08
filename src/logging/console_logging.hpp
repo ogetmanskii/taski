@@ -34,6 +34,7 @@ namespace color {
     constexpr std::string_view BRIGHT_RED = "\033[91m";
     constexpr std::string_view BRIGHT_GREEN = "\033[92m";
     constexpr std::string_view BRIGHT_YELLOW = "\033[93m";
+    constexpr std::string_view BRIGHT_BLACK = "\033[90m";
 
     // Стили
     constexpr std::string_view BOLD = "\033[1m";
@@ -62,5 +63,9 @@ namespace color {
 
     inline std::string yellow(const std::string& text) {
         return colored(text, YELLOW);
+    }
+
+    inline std::string gray(const std::string& text) {
+        return colored(text, BRIGHT_BLACK);
     }
 }

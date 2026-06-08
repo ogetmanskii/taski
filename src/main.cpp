@@ -103,8 +103,8 @@ static void RunUserMenu(std::shared_ptr<AppContext> context) {
             const std::string& serviceName = service->definition.name;
             if (status == ServiceStatus::UP) {
                 menu.push_back({
-                    std::format("{} ({})", serviceName, "UP"),
-                    std::format("{} ({})", serviceName, color::green("UP")),
+                    std::format("{} {}", serviceName, "on"),
+                    std::format("{} {}", serviceName, color::green("on")),
                     std::format("Stop {}", serviceName),
                     std::nullopt,
                     [&](AppContext& ctx, PipelineContext& pipeline) {
@@ -113,8 +113,8 @@ static void RunUserMenu(std::shared_ptr<AppContext> context) {
                 });
             } else if (status == ServiceStatus::DOWN) {
                 menu.push_back({
-                    std::format("{} ({})", serviceName, "DOWN"),
-                    std::format("{} ({})", serviceName, color::red("DOWN")),
+                    std::format("{} {}", serviceName, "off"),
+                    std::format("{} {}", serviceName, color::gray("off")),
                     std::format("Start {}", serviceName),
                     std::nullopt,
                     [&](AppContext& ctx, PipelineContext& pipeline) {
@@ -182,9 +182,9 @@ static void ExecuteCommands(std::shared_ptr<AppContext> ctx, const Args& args) {
             auto status = service->Status(activeProcesses);
             const std::string& serviceName = service->definition.name;
             if (status == ServiceStatus::UP) {
-                info("{} {}", serviceName, color::green("UP"));
+                info("{} {}", serviceName, color::green("on"));
             } else if (status == ServiceStatus::DOWN) {
-                info("{} {}", serviceName, color::red("DOWN"));
+                info("{} {}", serviceName, color::gray("off"));
             } else {
                 info("{} {}", serviceName, "??");
             }
