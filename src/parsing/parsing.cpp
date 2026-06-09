@@ -151,6 +151,8 @@ namespace devkit {
             env
         );
         std::vector<std::string> dependsOn = GetList<std::string>(node["dependsOn"]);
+        std::vector<std::string> before = GetList<std::string>(node["before"]);
+        std::vector<std::string> after = GetList<std::string>(node["after"]);
         bool hidden = GetBool(node["hidden"], false);
         std::vector<int> exitCodes = GetList<int>(node["exitCodes"]);
         auto& commandNode = node["command"];
@@ -168,6 +170,8 @@ namespace devkit {
                 std::move(name),
                 hidden,
                 std::move(dependsOn),
+                std::move(before),
+                std::move(after),
                 std::move(exitCodes),
                 std::move(commands),
                 std::move(workingDirectory),
@@ -182,6 +186,8 @@ namespace devkit {
                 std::move(name),
                 hidden,
                 std::move(dependsOn),
+                std::move(before),
+                std::move(after),
                 std::move(exitCodes),
                 GetFileTaskType(file),
                 std::move(file)

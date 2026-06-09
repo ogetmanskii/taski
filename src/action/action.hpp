@@ -119,14 +119,32 @@ namespace devkit {
     }
 
     static void RegisterRunTaskAction(AppContext& ctx, PipelineContext& pipeline, std::shared_ptr<Task> task) {
+        // Run before tasks
+        for (auto& beforeTaskName : task->GetBefore()) {
+            auto& beforeTask = ctx.GetTask(beforeTaskName);
+            if (!beforeTask) {
+                throw std::runtime_error("No such task: " + beforeTaskName);
+            }
+            RegisterRunTaskAction(ctx, pipeline, *beforeTask);
+        }
+        // Run dependsOn tasks
         for (auto& dependsOnTaskName : GetAllDependsOnTasks(ctx, *task)) {
             auto& dependsOnTask = ctx.GetTask(dependsOnTaskName);
             if (pipeline.InsertKey("run-task: " + dependsOnTaskName)) {
                 pipeline.AddAction(std::make_shared<RunTaskAction>(*dependsOnTask));
             }
         }
+        // Run task iteself
         pipeline.InsertKey("run-task: " + task->GetName());
         pipeline.AddAction(std::make_shared<RunTaskAction>(task));
+        // Run after tasks
+        for (auto& afterTaskName : task->GetAfter()) {
+            auto& afterTask = ctx.GetTask(afterTaskName);
+            if (!afterTask) {
+                throw std::runtime_error("No such task: " + afterTaskName);
+            }
+            RegisterRunTaskAction(ctx, pipeline, *afterTask);
+        }
     }
 
     static void RegisterStartAllServicesAction(AppContext& ctx, PipelineContext& pipeline) {

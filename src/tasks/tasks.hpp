@@ -25,12 +25,16 @@ namespace devkit {
         Task(
             std::string name, 
             bool hidden, 
-            std::vector<std::string> dependsOn, 
+            std::vector<std::string> dependsOn,
+            std::vector<std::string> before,
+            std::vector<std::string> after,
             std::vector<int> exitCodes
         ) :
             name(std::move(name)),
             hidden(hidden),
             dependsOn(std::move(dependsOn)),
+            before(std::move(before)),
+            after(std::move(after)),
             exitCodes(std::move(exitCodes))
         { }
 
@@ -49,10 +53,20 @@ namespace devkit {
             return dependsOn;
         }
 
+        const std::vector<std::string>& GetBefore() const {
+            return before;
+        }
+
+        const std::vector<std::string>& GetAfter() const {
+            return after;
+        }
+
     protected:
         const std::string name;
         const bool hidden;
         const std::vector<std::string> dependsOn;
+        const std::vector<std::string> before;
+        const std::vector<std::string> after;
         const std::vector<int> exitCodes;
 
         bool IsValidExitCode(int exitCode) const {
@@ -67,10 +81,12 @@ namespace devkit {
             std::string name,
             bool hidden,
             std::vector<std::string> dependsOn,
+            std::vector<std::string> before,
+            std::vector<std::string> after,
             std::vector<int> exitCodes,
             FileTaskType fileType,
             std::filesystem::path filePath
-        ) : Task(name, hidden, dependsOn, exitCodes),
+        ) : Task(name, hidden, dependsOn, before, after, exitCodes),
             filePath(std::move(filePath)),
             fileType(fileType)
         { }
@@ -108,11 +124,13 @@ namespace devkit {
             std::string name,
             bool hidden,
             std::vector<std::string> dependsOn,
+            std::vector<std::string> before,
+            std::vector<std::string> after,
             std::vector<int> exitCodes,
             std::vector<std::string> commands,
             std::optional<std::filesystem::path> workingDirectory,
             std::optional<std::unordered_map<std::string, std::string>> env
-        ) : Task(name, hidden, dependsOn, exitCodes),
+        ) : Task(name, hidden, dependsOn, before, after, exitCodes),
             commands(std::move(commands)),
             workingDirectory(std::move(workingDirectory)),
             env(std::move(env))
