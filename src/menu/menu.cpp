@@ -20,14 +20,6 @@
 
 namespace devkit {
 
-    static std::string GetShortcut(int i, const MenuItem& item) {
-        if (item.shortcut) {
-            return *item.shortcut;
-        } else {
-            return std::to_string(i);
-        }
-    }
-
     static std::pair<int /* width */, int /* height */> GetConsoleBounds() {
         CONSOLE_SCREEN_BUFFER_INFO csbi;
         if (GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &csbi)) {
@@ -40,9 +32,9 @@ namespace devkit {
     }
 
     struct MenuChoice {
-        std::string key;
-        const std::string* rawTitle;
-        const std::string* decoratedTitle;
+        const std::string key;
+        const std::string* title;
+        const int width;
     };
 
     static void PrintMenuColumns(
@@ -60,7 +52,7 @@ namespace devkit {
         int maxVisualWidth = 0;
         for (const auto& item : menuChoices) {
             maxKeyWidth = std::max(maxKeyWidth, static_cast<int>(item.key.length()));
-            int visualWidth = maxKeyWidth + 1 + item.rawTitle->length();
+            int visualWidth = maxKeyWidth + 1 + item.width;
             maxVisualWidth = std::max(maxVisualWidth, visualWidth);
         }
 
@@ -91,9 +83,9 @@ namespace devkit {
                     const auto& item = menuChoices[index];
 
                     std::string paddedKey = PadRight(item.key, maxKeyWidth);
-                    std::cout << color::cyan(paddedKey) << " " << *item.decoratedTitle;
+                    std::cout << color::cyan(paddedKey) << " " << *item.title;
 
-                    int currentWidth = maxKeyWidth + 1 + item.rawTitle->length();
+                    int currentWidth = maxKeyWidth + 1 + item.width;
                     int padding = maxVisualWidth - columnSpacing - currentWidth;
 
                     if (col < numColumns - 1 && index + numRows < menuChoices.size()) {
@@ -117,13 +109,13 @@ namespace devkit {
         std::vector<MenuChoice> menuChoices;
         int number = 1;
         for (const MenuItem& item : items) {
-            std::string shortcut = GetShortcut(number++, item);
+            std::string shortcut = std::to_string(number++);
             actions[shortcut] = &item;
             minWidth = std::max(shortcut.size(), minWidth);
             menuChoices.push_back({
                 .key = std::move(shortcut),
-                .rawTitle = &item.rawTitle,
-                .decoratedTitle = &item.decoratedTitle
+                .title = &item.title,
+                .width = item.length
             });
         }
         PrintMenuColumns(menuChoices);

@@ -83,69 +83,48 @@ static void RunUserMenu(std::shared_ptr<AppContext> context) {
         auto activeProcesses = GetActiveProcesses();
         std::vector<MenuItem> menu;
         if (context->GetServices().size() > 1) {
-            menu.push_back({
-                .rawTitle = "Start All",
-                .decoratedTitle = "Start All",
-                .description = "Start All Services",
-                .shortcut = std::nullopt,
-                .pipelineAction = RegisterStartAllServicesAction
-            });
-            menu.push_back({
-                .rawTitle = "Stop All",
-                .decoratedTitle = "Stop All",
-                .description = "Stop All Services",
-                .shortcut = std::nullopt,
-                .pipelineAction = RegisterStopAllServicesAction
-            });
+            menu.push_back(MenuItem("Start All", "Start All Services", RegisterStartAllServicesAction));
+            menu.push_back(MenuItem("Stop All", "Stop All Services", RegisterStopAllServicesAction));
         }
         for (auto& service : context->GetServices()) {
             auto status = service->Status(activeProcesses);
             const std::string& serviceName = service->definition.name;
             if (status == ServiceStatus::UP) {
-                menu.push_back({
-                    std::format("{} {}", serviceName, "on"),
-                    std::format("{} {}", serviceName, color::green("on")),
-                    std::format("Stop {}", serviceName),
-                    std::nullopt,
+                menu.push_back(MenuItem(
+                    std::format("{} {}", serviceName, color::green("on")), 
+                    std::format("Stop {}", serviceName), 
                     [&](AppContext& ctx, PipelineContext& pipeline) {
                         RegisterStopServiceAction(ctx, pipeline, service);
-                    }
-                });
+                    }));
             } else if (status == ServiceStatus::DOWN) {
-                menu.push_back({
-                    std::format("{} {}", serviceName, "off"),
+                menu.push_back(MenuItem(
                     std::format("{} {}", serviceName, color::gray("off")),
                     std::format("Start {}", serviceName),
-                    std::nullopt,
                     [&](AppContext& ctx, PipelineContext& pipeline) {
                         RegisterStartServiceAction(ctx, pipeline, service);
                     }
-                });
+                ));
             } else {
-                menu.push_back({
-                    std::format("{}", serviceName),
-                    std::format("{}", serviceName),
+                menu.push_back(MenuItem(
+                    serviceName,
                     std::format("Run {}", serviceName),
-                    std::nullopt,
                     [&](AppContext& ctx, PipelineContext& pipeline) {
                         RegisterStartServiceAction(ctx, pipeline, service);
                     }
-                });
+                ));
             }
         }
         for (auto& task : context->GetTasks()) {
             if (task->IsHidden()) {
                 continue;
             }
-            menu.push_back({
+            menu.push_back(MenuItem(
                 task->GetName(),
                 task->GetName(),
-                task->GetName(),
-                std::nullopt,
                 [&](AppContext& ctx, PipelineContext& pipeline) {
                     RegisterRunTaskAction(ctx, pipeline, task);
                 }
-            });
+            ));
         }
         
         if (devkit::ShowMenu(menu, context)) {
