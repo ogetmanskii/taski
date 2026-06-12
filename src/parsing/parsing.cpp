@@ -41,11 +41,15 @@ namespace devkit {
 
     template <typename T> std::vector<T> GetList(const YAML::Node& node) {
         std::vector<T> list;
-        if (!node || !node.IsSequence()) {
+        if (!node) {
             return list;
         }
-        for (int i = 0; i < node.size(); i++) {
-            list.push_back(node[i].as<T>());
+        if (node.IsSequence()) {
+            for (int i = 0; i < node.size(); i++) {
+                list.push_back(node[i].as<T>());
+            }
+        } else if (node.IsScalar()) {
+            list.push_back(node.as<T>());
         }
         return list;
     }
