@@ -9,19 +9,17 @@ namespace devkit {
         if (total == 0) {
             return;
         }
-        bool manySteps = total > 1;
         auto pipelineStart = std::chrono::high_resolution_clock::now();
         int i = 1;
         for (auto& action : actions) {
-            if (manySteps) {
-                info("\n-- [{}/{}] {}", i, total, action->Description());
-            }
+            info("\n-- [{}/{}] {}", i, total, action->Description());
             try {
                 action->Run(*appContext, *this);
                 i++;
             } catch (const std::exception& e) {
-                info("-- [{}/{}] {}: failed: {}", i, total, action->Description(), e.what());
-                throw std::runtime_error("Stopped due to error");
+                std::string message = std::format("-- [{}/{}] {}: failed: {}", i, total, action->Description(), e.what());
+                info(message);
+                throw e;
             }
         }
         auto pipelineEnd = std::chrono::high_resolution_clock::now();

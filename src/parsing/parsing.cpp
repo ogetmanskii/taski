@@ -63,7 +63,7 @@ namespace devkit {
             return map;
         }
         for (auto i = node.begin(); i != node.end(); i++) {
-            map[i->first.as<std::string>()] = RenderInjaTemplate(i->second.as<std::string>(), env);
+            map[i->first.as<std::string>()] = i->second.as<std::string>();
         }
         return map;
     }
@@ -75,6 +75,13 @@ namespace devkit {
         return TrimToSingleLine(node.as<std::string>());
     }
 
+    static std::string GetWorkingDirectory(const YAML::Node& node) {
+        if (!node || !node.IsScalar()) {
+            return std::filesystem::current_path().string();
+        }
+        return node.as<std::string>();
+    }
+
     static devkit::ServiceDefinition ParseService(
         const std::string& tagName,
         const YAML::Node& serviceNode,
@@ -82,7 +89,7 @@ namespace devkit {
 
         auto def = devkit::ServiceDefinition {
             .dependsOn = GetList<std::string>(serviceNode["dependsOn"]),
-            .workingDirectory = serviceNode["workingDirectory"].as<std::string>(),
+            .workingDirectory = GetWorkingDirectory(serviceNode["workingDirectory"]),
             .environment = GetMap(serviceNode["environment"], env),
             .startCommand = TrimToSingleLine(serviceNode["startCommand"].as<std::string>()),
             .stopCommand = GetOptionalSingleLine(serviceNode["stopCommand"]),
@@ -149,11 +156,8 @@ namespace devkit {
         const YAML::Node& node,
         const std::unordered_map<std::string, std::string>& env) {
 
-        std::string name = RenderInjaTemplate(GetOptional<std::string>(node["name"]).value_or(tag), env);
-        std::filesystem::path workingDirectory = RenderInjaTemplate(
-            GetOptional<std::string>(node["workingDirectory"]).value_or(std::filesystem::current_path().string()),
-            env
-        );
+        std::string name = GetOptional<std::string>(node["name"]).value_or(tag);
+        std::filesystem::path workingDirectory = GetWorkingDirectory(node["workingDirectory"]);
         std::vector<std::string> dependsOn = GetList<std::string>(node["dependsOn"]);
         std::vector<std::string> before = GetList<std::string>(node["before"]);
         std::vector<std::string> after = GetList<std::string>(node["after"]);
@@ -163,10 +167,10 @@ namespace devkit {
         if (commandNode) {
             std::vector<std::string> commands;
             if (commandNode.IsScalar()) {
-                commands.push_back(RenderInjaTemplate(commandNode.as<std::string>(), env));
+                commands.push_back(commandNode.as<std::string>());
             } else if (commandNode.IsSequence()) {
                 for (auto it = commandNode.begin(); it != commandNode.end(); it++) {
-                    commands.push_back(RenderInjaTemplate((*it).as<std::string>(), env));
+                    commands.push_back((*it).as<std::string>());
                 }
             }
             std::unordered_map<std::string, std::string> taskEnv = GetMap(node["environment"], env);
@@ -185,7 +189,7 @@ namespace devkit {
 
         auto& fileNode = node["file"];
         if (fileNode && fileNode.IsScalar()) {
-            std::string file = RenderInjaTemplate(fileNode.as<std::string>(), env);
+            std::string file = fileNode.as<std::string>();
             return std::make_shared<FileTask>(
                 std::move(name),
                 hidden,
