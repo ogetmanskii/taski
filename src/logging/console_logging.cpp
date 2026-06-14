@@ -18,12 +18,12 @@ namespace devkit {
     }
 
     void SetConsoleUtf8Encoding() {
-        SetConsoleCP(CP_UTF8);
+        SetConsoleOutputCP(CP_UTF8);
         setlocale(LC_ALL, "");
     }
 
     void SetConsoleDefaultEncoding() {
-        SetConsoleCP(0);
+        SetConsoleOutputCP(0);
         setlocale(LC_ALL, "C");
     }
 }

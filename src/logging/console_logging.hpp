@@ -86,9 +86,7 @@ namespace devkit {
         }
 
         ~Utf8Guard() {
-            if (forceUtf8) {
-                SetConsoleDefaultEncoding();
-            }
+            SetConsoleDefaultEncoding();
         }
 
         const bool forceUtf8;
