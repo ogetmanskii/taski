@@ -16,6 +16,7 @@ namespace devkit {
         std::string name;
         std::vector<std::string> dependsOn;
         std::string workingDirectory;
+        bool utf8;
         std::unordered_map<std::string, std::string> environment;
         std::string startCommand;
         std::optional<std::string> stopCommand;
@@ -44,6 +45,7 @@ namespace devkit {
         }
 
         ServiceStatus Status(const std::vector<ProcessInfo>& activeProcesses) const {
+            Utf8Guard utf8(definition.utf8);
             if (!definition.monitorProcess) {
                 return ServiceStatus::UNKNOWN;
             }
@@ -57,6 +59,7 @@ namespace devkit {
         }
 
         void Stop(const std::vector<ProcessInfo>& activeProcesses) const {
+            Utf8Guard utf8(definition.utf8);
             if (definition.monitorProcess && !ProcessExists(
                 activeProcesses,
                 StringToWString(*definition.monitorProcess),
@@ -84,6 +87,7 @@ namespace devkit {
         }
 
         void Start(const std::vector<ProcessInfo>& activeProcesses) const {
+            Utf8Guard utf8(definition.utf8);
             if (definition.monitorProcess.has_value() && ProcessExists(
                 activeProcesses,
                 StringToWString(definition.monitorProcess.value()),

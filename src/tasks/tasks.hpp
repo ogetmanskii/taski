@@ -25,6 +25,7 @@ namespace devkit {
         Task(
             std::string name, 
             bool hidden, 
+            bool utf8,
             std::vector<std::string> dependsOn,
             std::vector<std::string> before,
             std::vector<std::string> after,
@@ -32,6 +33,7 @@ namespace devkit {
         ) :
             name(std::move(name)),
             hidden(hidden),
+            utf8(utf8),
             dependsOn(std::move(dependsOn)),
             before(std::move(before)),
             after(std::move(after)),
@@ -64,6 +66,7 @@ namespace devkit {
     protected:
         const std::string name;
         const bool hidden;
+        const bool utf8;
         const std::vector<std::string> dependsOn;
         const std::vector<std::string> before;
         const std::vector<std::string> after;
@@ -80,18 +83,20 @@ namespace devkit {
         FileTask(
             std::string name,
             bool hidden,
+            bool utf8,
             std::vector<std::string> dependsOn,
             std::vector<std::string> before,
             std::vector<std::string> after,
             std::vector<int> exitCodes,
             FileTaskType fileType,
             std::filesystem::path filePath
-        ) : Task(name, hidden, dependsOn, before, after, exitCodes),
+        ) : Task(name, hidden, utf8, dependsOn, before, after, exitCodes),
             filePath(std::move(filePath)),
             fileType(fileType)
         { }
 
         void Run() const override {
+            Utf8Guard utf8guard(utf8);
             if (fileType == FileTaskType::LUA) {
                 try {
                     ExecuteLuaFile(filePath.string());
@@ -123,6 +128,7 @@ namespace devkit {
         ShellCommandTask(
             std::string name,
             bool hidden,
+            bool utf8,
             std::vector<std::string> dependsOn,
             std::vector<std::string> before,
             std::vector<std::string> after,
@@ -130,13 +136,14 @@ namespace devkit {
             std::vector<std::string> commands,
             std::optional<std::filesystem::path> workingDirectory,
             std::optional<std::unordered_map<std::string, std::string>> env
-        ) : Task(name, hidden, dependsOn, before, after, exitCodes),
+        ) : Task(name, hidden, utf8, dependsOn, before, after, exitCodes),
             commands(std::move(commands)),
             workingDirectory(std::move(workingDirectory)),
             env(std::move(env))
         { }
 
         void Run() const override {
+            Utf8Guard utf8guard(utf8);
             std::string cwd = workingDirectory.value_or(std::filesystem::current_path()).string();
             std::stringstream finalCommand;
             for (int i = 0; i < commands.size(); i++) {

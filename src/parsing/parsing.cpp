@@ -90,6 +90,7 @@ namespace devkit {
         auto def = devkit::ServiceDefinition {
             .dependsOn = GetList<std::string>(serviceNode["dependsOn"]),
             .workingDirectory = GetWorkingDirectory(serviceNode["workingDirectory"]),
+            .utf8 = GetBool(serviceNode["utf8"], true),
             .environment = GetMap(serviceNode["environment"], env),
             .startCommand = TrimToSingleLine(serviceNode["startCommand"].as<std::string>()),
             .stopCommand = GetOptionalSingleLine(serviceNode["stopCommand"]),
@@ -162,6 +163,7 @@ namespace devkit {
         std::vector<std::string> before = GetList<std::string>(node["before"]);
         std::vector<std::string> after = GetList<std::string>(node["after"]);
         bool hidden = GetBool(node["hidden"], false);
+        bool utf8 = GetBool(node["utf8"], true);
         std::vector<int> exitCodes = GetList<int>(node["exitCodes"]);
         auto& commandNode = node["command"];
         if (commandNode) {
@@ -177,6 +179,7 @@ namespace devkit {
             return std::make_shared<ShellCommandTask>(
                 std::move(name),
                 hidden,
+                utf8,
                 std::move(dependsOn),
                 std::move(before),
                 std::move(after),
@@ -193,6 +196,7 @@ namespace devkit {
             return std::make_shared<FileTask>(
                 std::move(name),
                 hidden,
+                utf8,
                 std::move(dependsOn),
                 std::move(before),
                 std::move(after),

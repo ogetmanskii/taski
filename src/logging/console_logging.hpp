@@ -22,6 +22,10 @@ namespace devkit {
 
     void ClearScreen();
 
+    void SetConsoleUtf8Encoding();
+
+    void SetConsoleDefaultEncoding();
+
     class DurationFormatter {
     public:
         static std::string Format(long long millis) {
@@ -66,6 +70,28 @@ namespace devkit {
                 oss << value << suffix << " ";
             }
         }
+    };
+
+    class Utf8Guard {
+    public:
+        
+        Utf8Guard() = delete;
+
+        Utf8Guard(bool forceUtf8)
+            : forceUtf8(forceUtf8) {
+
+            if (forceUtf8) {
+                SetConsoleUtf8Encoding();
+            }
+        }
+
+        ~Utf8Guard() {
+            if (forceUtf8) {
+                SetConsoleDefaultEncoding();
+            }
+        }
+
+        const bool forceUtf8;
     };
 }
 

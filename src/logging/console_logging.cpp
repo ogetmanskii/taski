@@ -10,12 +10,20 @@ namespace devkit {
     }
 
     void InitConsole() {
-        SetConsoleCP(CP_UTF8);
-        setlocale(LC_ALL, "");
         EnableAnsiSupport();
     }
 
     void ClearScreen() {
         std::cout << "\033[2J\033[H" << std::flush;
+    }
+
+    void SetConsoleUtf8Encoding() {
+        SetConsoleCP(CP_UTF8);
+        setlocale(LC_ALL, "");
+    }
+
+    void SetConsoleDefaultEncoding() {
+        SetConsoleCP(0);
+        setlocale(LC_ALL, "C");
     }
 }
