@@ -1,24 +1,30 @@
 tasks:
   clean:
+    utf8: false
     command: rmdir /s /q build
     exitCodes: [0,2]
   conan-install-debug:
+    utf8: false
     command: conan install . --output-folder=build --build=missing -s build_type=Debug
   conan-install-release:
+    utf8: false
     command: conan install . --output-folder=build --build=missing -s build_type=Release
   cmake-configure:
+    utf8: false
     dependsOn: 
       - conan-install-debug
       - conan-install-release
     workingDirectory: build
     command: cmake .. -DCMAKE_TOOLCHAIN_FILE="conan_toolchain.cmake"
   build-release:
+    utf8: false
     dependsOn: 
       - conan-install-release
       - cmake-configure
     workingDirectory: build
     command: cmake --build . --config Release
   build-debug:
+    utf8: false
     dependsOn: 
       - conan-install-debug
       - cmake-configure
