@@ -45,9 +45,6 @@ endif()
 find_package(inja REQUIRED)
 find_package(yaml-cpp REQUIRED)
 find_package(GTest REQUIRED)
-find_package(lua REQUIRED)
-find_package(CURL REQUIRED)
-find_package(minizip REQUIRED)
 
 add_executable(
     cli 
@@ -55,14 +52,11 @@ add_executable(
     "src/menu/menu.cpp"
     "src/processes/processes.cpp"
     "src/logging/console_logging.cpp"
-    "src/util/util.cpp" "src/parsing/parsing.cpp"  "src/util/win_create_process.cpp"  "src/tasks/lua.cpp"  "src/util/wstring.cpp" "src/parsing/env_parser.cpp" "src/util/download_file.cpp" "src/util/extract_zip_file.cpp" "src/args/args.cpp" "src/context/pipeline_context.cpp" "src/action/action.cpp")
+    "src/util/util.cpp" "src/parsing/parsing.cpp"  "src/util/win_create_process.cpp"    "src/util/wstring.cpp" "src/parsing/env_parser.cpp"   "src/args/args.cpp" "src/context/pipeline_context.cpp" "src/action/action.cpp")
 target_compile_features(cli PRIVATE cxx_std_20)
 target_link_libraries(cli
     pantor::inja
     yaml-cpp::yaml-cpp
-    lua::lua
-    CURL::libcurl
-    minizip::minizip
 )
 
 # Добавление ресурсов для Windows
@@ -84,17 +78,14 @@ add_executable(
     "src/menu/menu.cpp"
     "src/processes/processes.cpp"
     "src/logging/console_logging.cpp"
-    "tests/parsing_test.cpp"
- "src/util/util.cpp" "src/parsing/parsing.cpp"  "src/util/win_create_process.cpp"  "src/tasks/lua.cpp"  "tests/strings_test.cpp" "src/util/wstring.cpp" "src/parsing/env_parser.cpp" "src/util/download_file.cpp" "tests/download_file_test.cpp" "src/util/extract_zip_file.cpp" "src/args/args.cpp" "src/context/pipeline_context.cpp" "src/action/action.cpp")
+    
+ "src/util/util.cpp" "src/parsing/parsing.cpp"  "src/util/win_create_process.cpp"    "tests/strings_test.cpp" "src/util/wstring.cpp" "src/parsing/env_parser.cpp"    "src/args/args.cpp" "src/context/pipeline_context.cpp" "src/action/action.cpp")
 target_compile_features(testrunner PRIVATE cxx_std_20)
 target_link_libraries(testrunner PRIVATE
     GTest::gtest
     GTest::gtest_main
     pantor::inja
     yaml-cpp::yaml-cpp
-    lua::lua
-    CURL::libcurl
-    minizip::minizip
 )
 add_executable("test-executable" "test_executable/main.cpp")
 target_compile_features("test-executable" PRIVATE cxx_std_20)

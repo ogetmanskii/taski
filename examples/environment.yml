@@ -57,7 +57,6 @@ services:
     stopCommand: bin\pg_ctl stop -D data
 
 tasks:
-  # Простые задачи можно определять как shell команды
   helloWorldTask:
     # Название задачи - опционально
     name: Print Hello World
@@ -71,20 +70,6 @@ tasks:
       HELLO_WORLD: "Hello World"
     # Команда
     command: echo %HELLO_WORLD%
-
-  # Более сложные задачи можно определять в виде файлов
-  # Поддерживаются lua, bat / cmd, sh файлы
-  # Lua скрипты выполняются через встроенный интерпретатор языка Lua
-  luaTask:
-    name: Lua Script
-    file: Lua-Task.lua
-  batTask:
-    name: Bat Script
-    file: Bat-Task.bat
-  # sh файлы выполняются через WSL
-  shellTask:
-    name: Shell Script
-    file: Shell-Task.sh
 
   mkdir-data:
     # Задачи можно скрывать из списка задач

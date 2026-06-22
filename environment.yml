@@ -30,3 +30,8 @@ tasks:
       - cmake-configure
     workingDirectory: build
     command: cmake --build . --config Debug
+  test:
+    utf8: false
+    dependsOn: build-release
+    workingDirectory: build/Release
+    command: testrunner.exe

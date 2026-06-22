@@ -137,21 +137,6 @@ namespace devkit {
         }
     }
 
-    static FileTaskType GetFileTaskType(const std::filesystem::path& path) {
-        std::string ext = path.extension().string();
-        std::string filename = path.filename().string();
-        std::string name = ext.empty() ? filename : filename.substr(0, filename.size() - ext.size());
-
-        if (ext == ".lua") {
-            return FileTaskType::LUA;
-        } else if (ext == ".bat" || ext == ".cmd") {
-            return FileTaskType::BAT;
-        } else if (ext == ".sh") {
-            return FileTaskType::SH;
-        }
-        throw std::runtime_error("Unknown task type: " + path.string());
-    }
-
     static std::shared_ptr<Task> ParseTask(
         const std::string& tag,
         const YAML::Node& node,
@@ -189,23 +174,7 @@ namespace devkit {
                 std::move(taskEnv)
             );
         }
-
-        auto& fileNode = node["file"];
-        if (fileNode && fileNode.IsScalar()) {
-            std::string file = fileNode.as<std::string>();
-            return std::make_shared<FileTask>(
-                std::move(name),
-                hidden,
-                utf8,
-                std::move(dependsOn),
-                std::move(before),
-                std::move(after),
-                std::move(exitCodes),
-                GetFileTaskType(file),
-                std::move(file)
-            );
-        }
-        throw std::runtime_error("Could not parse task " + name + ": no command, and no file specified");
+        throw std::runtime_error("Could not parse task " + name + ": no command specified");
     }
 
     static void ParseTasks(

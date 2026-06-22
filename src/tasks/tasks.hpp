@@ -12,14 +12,6 @@
 
 namespace devkit {
 
-    void ExecuteLuaFile(const std::string& file);
-
-    enum FileTaskType {
-        LUA,
-        BAT,
-        SH
-    };
-
     class Task {
     public:
         Task(
@@ -76,51 +68,6 @@ namespace devkit {
             return (exitCodes.empty() && exitCode == 0)
                 || (std::find(exitCodes.begin(), exitCodes.end(), exitCode) != exitCodes.end());
         }
-    };
-
-    class FileTask : public Task {
-    public:
-        FileTask(
-            std::string name,
-            bool hidden,
-            bool utf8,
-            std::vector<std::string> dependsOn,
-            std::vector<std::string> before,
-            std::vector<std::string> after,
-            std::vector<int> exitCodes,
-            FileTaskType fileType,
-            std::filesystem::path filePath
-        ) : Task(name, hidden, utf8, dependsOn, before, after, exitCodes),
-            filePath(std::move(filePath)),
-            fileType(fileType)
-        { }
-
-        void Run() const override {
-            Utf8Guard utf8guard(utf8);
-            if (fileType == FileTaskType::LUA) {
-                try {
-                    ExecuteLuaFile(filePath.string());
-                } catch (const std::exception& e) {
-                    throw std::runtime_error("Task " + name + " exited with error: " + e.what());
-                }
-            } else if (fileType == FileTaskType::BAT) {
-                std::unordered_map<std::string, std::string> env;
-                int exitCode = RunShellCommand("\"" + filePath.filename().string() + "\"", std::filesystem::current_path().string(), env, false);
-                if (!IsValidExitCode(exitCode)) {
-                    throw std::runtime_error("Task " + name + " exited with code: " + std::to_string(exitCode));
-                }
-            } else if (fileType == FileTaskType::SH) {
-                std::unordered_map<std::string, std::string> env;
-                int exitCode = RunShellCommand("wsl \"./" + filePath.filename().string() + "\"", std::filesystem::current_path().string(), env, false);
-                if (!IsValidExitCode(exitCode)) {
-                    throw std::runtime_error("Task " + name + " exited with code: " + std::to_string(exitCode));
-                }
-            }
-        }
-
-    private:
-        const FileTaskType fileType;
-        const std::filesystem::path filePath;
     };
 
     class ShellCommandTask : public Task {

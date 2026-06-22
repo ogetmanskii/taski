@@ -126,16 +126,4 @@ namespace devkit {
         //std::transform(result.begin(), result.end(), result.begin(), ::towlower);
         return result;
     }
-
-    void DownloadFile(
-        const std::string& url, 
-        const std::string& localPath, 
-        bool ignoreSslErrors = false,
-        bool useSystemCaBundle = true
-    );
-
-    void ExtractZipFile(
-        const std::string& zipFilePath, 
-        const std::string& destDir
-    );
 }
