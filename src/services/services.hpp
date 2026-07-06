@@ -45,7 +45,6 @@ namespace devkit {
         }
 
         ServiceStatus Status(const std::vector<ProcessInfo>& activeProcesses) const {
-            Utf8Guard utf8(definition.utf8);
             if (!definition.monitorProcess) {
                 return ServiceStatus::UNKNOWN;
             }

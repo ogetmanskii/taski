@@ -22,9 +22,7 @@ namespace devkit {
 
     void ClearScreen();
 
-    void SetConsoleUtf8Encoding();
-
-    void SetConsoleDefaultEncoding();
+    void TransformUtf8Strings(bool transform);
 
     class DurationFormatter {
     public:
@@ -81,12 +79,12 @@ namespace devkit {
             : forceUtf8(forceUtf8) {
 
             if (forceUtf8) {
-                SetConsoleUtf8Encoding();
+                TransformUtf8Strings(true);
             }
         }
 
         ~Utf8Guard() {
-            SetConsoleDefaultEncoding();
+            TransformUtf8Strings(false);
         }
 
         const bool forceUtf8;
