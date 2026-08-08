@@ -82,6 +82,23 @@ namespace devkit {
         return node.as<std::string>();
     }
 
+    static std::vector<std::string> ParseCommands(const YAML::Node& node) {
+        std::vector<std::string> result;
+        if (!node) {
+            return result;
+        }
+        if (node.IsScalar()) {
+            result.push_back(TrimToSingleLine(node.as<std::string>()));
+        }
+        if (node.IsSequence()) {
+            for (auto it = node.begin(); it != node.end(); it++) {
+                const std::string& value = it->as<std::string>();
+                result.push_back(TrimToSingleLine(value));
+            }
+        }
+        return result;
+    }
+
     static devkit::ServiceDefinition ParseService(
         const std::string& tagName,
         const YAML::Node& serviceNode,
@@ -92,8 +109,8 @@ namespace devkit {
             .workingDirectory = GetWorkingDirectory(serviceNode["workingDirectory"]),
             .utf8 = GetBool(serviceNode["utf8"], true),
             .environment = GetMap(serviceNode["environment"], env),
-            .startCommand = TrimToSingleLine(serviceNode["startCommand"].as<std::string>()),
-            .stopCommand = GetOptionalSingleLine(serviceNode["stopCommand"]),
+            .startCommand = ParseCommands(serviceNode["startCommand"]),
+            .stopCommand = ParseCommands(serviceNode["stopCommand"]),
             .detachAfterSeconds = GetOptional<int>(serviceNode["detachAfterSeconds"]),
             .detachAfterMessage = GetOptional<std::string>(serviceNode["detachAfterMessage"])
         };

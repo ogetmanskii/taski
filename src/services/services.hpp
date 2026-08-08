@@ -18,8 +18,8 @@ namespace devkit {
         std::string workingDirectory;
         bool utf8;
         std::unordered_map<std::string, std::string> environment;
-        std::string startCommand;
-        std::optional<std::string> stopCommand;
+        std::vector<std::string> startCommand;
+        std::vector<std::string> stopCommand;
 
         std::optional<int> detachAfterSeconds;
         std::optional<std::string> detachAfterMessage;
@@ -65,9 +65,9 @@ namespace devkit {
                 StringToWString(definition.monitorProcessArgsPattern.value_or("*")))) {
                 return;
             }
-            if (definition.stopCommand.has_value()) {
+            if (!definition.stopCommand.empty()) {
                 RunShellCommand(
-                    definition.stopCommand.value(),
+                    JoinCommands(definition.stopCommand),
                     definition.workingDirectory,
                     definition.environment
                 );
@@ -98,7 +98,7 @@ namespace devkit {
             }
             if (definition.detachAfterMessage.has_value()) {
                 std::optional<int> exitCode = RunShellCommand(
-                    definition.startCommand,
+                    JoinCommands(definition.startCommand),
                     definition.workingDirectory,
                     definition.environment,
                     definition.detachAfterMessage.value()
@@ -109,7 +109,7 @@ namespace devkit {
                 }
             } else if (definition.detachAfterSeconds.has_value()) {
                 std::optional<int> exitCode = RunShellCommand(
-                    definition.startCommand,
+                    JoinCommands(definition.startCommand),
                     definition.workingDirectory,
                     definition.environment,
                     definition.detachAfterSeconds.value()
@@ -124,7 +124,7 @@ namespace devkit {
                 }
             } else {
                 int exitCode = RunShellCommand(
-                    definition.startCommand,
+                    JoinCommands(definition.startCommand),
                     definition.workingDirectory,
                     definition.environment,
                     true

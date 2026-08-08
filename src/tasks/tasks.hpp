@@ -92,17 +92,8 @@ namespace devkit {
         void Run() const override {
             Utf8Guard utf8guard(utf8);
             std::string cwd = workingDirectory.value_or(std::filesystem::current_path()).string();
-            std::stringstream finalCommand;
-            for (int i = 0; i < commands.size(); i++) {
-                const std::string& command { commands[i] };
-                if (i == 0) {
-                    finalCommand << command;
-                } else {
-                    finalCommand << " && " << command;
-                }
-            }
 
-            int exitCode = RunShellCommand(finalCommand.str(), cwd, env.value_or(std::unordered_map<std::string, std::string>()), false);
+            int exitCode = RunShellCommand(JoinCommands(commands), cwd, env.value_or(std::unordered_map<std::string, std::string>()), false);
             if (!IsValidExitCode(exitCode)) {
                 throw std::runtime_error("Task " + name + " exited with code: " + std::to_string(exitCode));
             }

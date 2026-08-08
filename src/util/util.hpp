@@ -40,6 +40,19 @@ namespace devkit {
 
     std::string ReadFileUtf8(const std::filesystem::path& filePath);
 
+    inline std::string JoinCommands(const std::vector<std::string>& commands) {
+        std::stringstream finalCommand;
+        for (int i = 0; i < commands.size(); i++) {
+            const std::string& command { commands[i] };
+            if (i == 0) {
+                finalCommand << command;
+            } else {
+                finalCommand << " && " << command;
+            }
+        }
+        return finalCommand.str();
+    }
+
     /**
      * Подсчет печатной длины строки с учетом ANSI escape-последовательностей
      */
