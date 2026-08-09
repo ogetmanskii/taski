@@ -1,23 +1,43 @@
+#include "Parser.hpp"
+
+#include <string>
+#include <iostream>
+#include <fstream>
+#include <sstream>
+#include <stdexcept>
+#include <unordered_map>
+
 #include "inja/inja.hpp"
 #include "yaml-cpp/yaml.h"
-#include "parsing.hpp"
-#include "../console/Console.hpp"
+
 #include "../service/Service.hpp"
-#include "../task/ShellCommandTask.hpp"
-#include "inja_env.hpp"
+#include "../service/ServiceDefinition.hpp"
+#include "../util/StringUtils.hpp"
 #include "../util/FileUtils.hpp"
+#include "../task/ShellCommandTask.hpp"
 
-#include <algorithm>
-#include <filesystem>
-#include <vector>
-#include <string>
-#include <exception>
+namespace {
 
-using namespace inja;
+    using namespace inja;
+    using namespace devkit;
 
-namespace devkit {
+    inja::Environment GetInjaEnvironment() {
+        inja::Environment injaEnvironment;
+        injaEnvironment.set_expression("${", "}");
+        injaEnvironment.set_html_autoescape(false);
+        return injaEnvironment;
+    }
 
-    static std::string RenderInjaTemplate(
+    std::string TrimWhitespace(const std::string& str) {
+        std::size_t first = str.find_first_not_of(" \t");
+        std::size_t last = str.find_last_not_of(" \t");
+        if (first == std::string::npos) {
+            return "";
+        }
+        return str.substr(first, last - first + 1);
+    }
+
+    std::string RenderInjaTemplate(
         const std::string& templateString,
         const std::unordered_map<std::string, std::string>& env) {
 
@@ -26,7 +46,7 @@ namespace devkit {
         return injaEnvironment.render(templateString, env);
     }
 
-    static bool GetBool(const YAML::Node& node, bool defaultValue) {
+    bool GetBool(const YAML::Node& node, bool defaultValue) {
         if (!node || !node.IsScalar()) {
             return defaultValue;
         }
@@ -55,7 +75,7 @@ namespace devkit {
         return list;
     }
 
-    static std::unordered_map<std::string, std::string> GetMap(
+    std::unordered_map<std::string, std::string> GetMap(
         const YAML::Node& node,
         const std::unordered_map<std::string, std::string>& env) {
 
@@ -69,38 +89,38 @@ namespace devkit {
         return map;
     }
 
-    static std::optional<std::string> GetOptionalSingleLine(const YAML::Node& node) {
+    std::optional<std::string> GetOptionalSingleLine(const YAML::Node& node) {
         if (!node || !node.IsScalar()) {
             return std::nullopt;
         }
         return TrimToSingleLine(node.as<std::string>());
     }
 
-    static std::string GetWorkingDirectory(const YAML::Node& node) {
+    std::string GetWorkingDirectory(const YAML::Node& node) {
         if (!node || !node.IsScalar()) {
             return std::filesystem::current_path().string();
         }
         return node.as<std::string>();
     }
 
-    static std::vector<std::string> ParseCommands(const YAML::Node& node) {
+    std::vector<std::string> ParseCommands(const YAML::Node& node) {
         std::vector<std::string> result;
         if (!node) {
             return result;
         }
         if (node.IsScalar()) {
-            result.push_back(TrimToSingleLine(node.as<std::string>()));
+            result.push_back(StringUtils::TrimToSingleLine(node.as<std::string>()));
         }
         if (node.IsSequence()) {
             for (auto it = node.begin(); it != node.end(); it++) {
                 const std::string& value = it->as<std::string>();
-                result.push_back(TrimToSingleLine(value));
+                result.push_back(StringUtils::TrimToSingleLine(value));
             }
         }
         return result;
     }
 
-    static devkit::ServiceDefinition ParseService(
+    devkit::ServiceDefinition ParseService(
         const std::string& tagName,
         const YAML::Node& serviceNode,
         const std::unordered_map<std::string, std::string>& env) {
@@ -135,10 +155,10 @@ namespace devkit {
         return def;
     }
 
-    static void ParseServices(
+    void ParseServices(
         const YAML::Node& servicesNode,
         const std::unordered_map<std::string, std::string>& env,
-        std::vector<std::shared_ptr<Service>>& outServices) {
+        std::vector<std::shared_ptr<devkit::Service>>& outServices) {
 
         for (auto it = servicesNode.begin(); it != servicesNode.end(); it++) {
             const std::string& serviceTag = it->first.as<std::string>();
@@ -155,7 +175,7 @@ namespace devkit {
         }
     }
 
-    static std::shared_ptr<Task> ParseTask(
+    std::shared_ptr<Task> ParseTask(
         const std::string& tag,
         const YAML::Node& node,
         const std::unordered_map<std::string, std::string>& env) {
@@ -195,7 +215,7 @@ namespace devkit {
         throw std::runtime_error("Could not parse task " + name + ": no command specified");
     }
 
-    static void ParseTasks(
+    void ParseTasks(
         const YAML::Node& tasksNode,
         const std::unordered_map<std::string, std::string>& env,
         std::vector<std::shared_ptr<Task>>& outTasks) {
@@ -213,14 +233,49 @@ namespace devkit {
             }
         }
     }
+}
 
-    void ParseServicesYml(
+namespace devkit::Parser {
+
+    std::unordered_map<std::string, std::string> ParseDotEnvFile(const std::string& filename) {
+        static inja::Environment injaEnv = GetInjaEnvironment();
+
+        std::unordered_map<std::string, std::string> data;
+
+        std::ifstream file(filename);
+        if (!file.is_open()) {
+            return data;
+        }
+
+        nlohmann::json jsonData;
+        std::string line;
+        while (std::getline(file, line)) {
+            // skip empty lines and comments
+            if (line.empty() || line[0] == '#' || line[0] == ';') {
+                continue;
+            }
+
+            // parse key-value pairs
+            auto delimiterPos = line.find('=');
+            if (delimiterPos == std::string::npos) {
+                throw std::runtime_error("Invalid line format: " + line);
+            }
+            std::string key = TrimWhitespace(line.substr(0, delimiterPos));
+            std::string value = TrimWhitespace(line.substr(delimiterPos + 1));
+
+            data[key] = injaEnv.render(value, jsonData);
+            jsonData[key] = data[key];
+        }
+        return data;
+    }
+
+    void ParseEnvironmentYamlFile(
         const std::filesystem::path& filePath,
         const std::unordered_map<std::string, std::string>& env,
         std::vector<std::shared_ptr<Service>>& outServices,
         std::vector<std::shared_ptr<Task>>& outTasks
-    ) {
-        std::string yaml = RenderInjaTemplate(devkit::FileUtils::ReadFileUtf8(filePath), env);
+        ) {
+        std::string yaml = RenderInjaTemplate(FileUtils::ReadFileUtf8(filePath), env);
 
         YAML::Node rootNode = YAML::Load(yaml);
         if (!rootNode.IsMap()) {

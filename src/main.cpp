@@ -14,8 +14,7 @@
 #include "console/Color.hpp"
 #include "menu/Menu.hpp"
 #include "processes/processes.hpp"
-#include "parsing/parsing.hpp"
-#include "parsing/env_parser.hpp"
+#include "parser/Parser.hpp"
 #include "args/Args.hpp"
 #include "context/AppContext.hpp"
 #include "task/Task.hpp"
@@ -34,8 +33,7 @@ namespace fs = std::filesystem;
 static std::unordered_map<std::string, std::string> GetEnv(const fs::path& currentPath, const std::string& dotEnvFile) {
     
     try {
-        EnvParser envParser;
-        std::unordered_map<std::string, std::string> env = envParser.ParseFromFile((currentPath / dotEnvFile).string());
+        std::unordered_map<std::string, std::string> env = Parser::ParseDotEnvFile((currentPath / dotEnvFile).string());
         for (auto it = env.begin(); it != env.end(); it++) {
             const auto& pair = *it;
             std::string envString = pair.first + "=" + pair.second;
@@ -58,7 +56,7 @@ static void ParseEnvironment(
     std::vector<std::shared_ptr<Task>>& outTasks) {
 
     try {
-        ParseServicesYml(currentPath / environmentFile, env, outServices, outTasks);
+        Parser::ParseEnvironmentYamlFile(currentPath / environmentFile, env, outServices, outTasks);
     } catch (const std::exception& e) {
         Info("Could not parse services: {}", e.what());
     }

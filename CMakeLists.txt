@@ -52,7 +52,7 @@ add_executable(
     "src/menu/Menu.cpp"
     "src/processes/WindowsProcesses.cpp"
     "src/console/Console.cpp"
-     "src/parsing/parsing.cpp"  "src/shell/WindowsShellRunner.cpp"    "src/util/StringUtils.cpp" "src/parsing/env_parser.cpp"   "src/args/Args.cpp"  "src/action/ActionUtils.cpp" "src/context/PipelineContext.cpp")
+       "src/shell/WindowsShellRunner.cpp"    "src/util/StringUtils.cpp"    "src/args/Args.cpp"  "src/action/ActionUtils.cpp" "src/context/PipelineContext.cpp" "src/parser/Parser.cpp")
 target_compile_features(cli PRIVATE cxx_std_20)
 target_link_libraries(cli
     pantor::inja
