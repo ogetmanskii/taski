@@ -37,7 +37,7 @@ namespace devkit {
                 || versionCommand
                 || !runList.empty();
         };
-    };
 
-    const Args GetArgs(int argc, char* argv[]);
+        static const Args FromArgv(int argc, char* argv[]);
+    };
 }

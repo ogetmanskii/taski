@@ -4,10 +4,14 @@
 #include <vector>
 #include <algorithm>
 #include <functional>
-#include "../util/match_wildcard.hpp"
-#include "../util/util.hpp"
+#include <iostream>
+#include <thread>
 
-namespace devkit {
+#include "../util/StringUtils.hpp"
+#include "../util/WildcardMatcher.hpp"
+#include "../console/Console.hpp"
+
+namespace devkit::Processes {
 
     struct ProcessInfo {
         std::wstring name;  // полный путь до исполняемого файла
@@ -32,4 +36,29 @@ namespace devkit {
         const std::wstring& processArgs = L"*"
     );
 
+    inline void WaitForNoActiveProcess(const std::string& exePath, const std::string& argsPattern) {
+        if (argsPattern.empty()) {
+            Console::Info("-- Waiting for process to terminate: {}", exePath);
+        } else {
+            Console::Info("-- Waiting for process to terminate: {}\n   with args: {}", exePath, argsPattern);
+        }
+        auto wExePath = StringUtils::StringToWString(exePath);
+        auto wArgsPattern = StringUtils::StringToWString(argsPattern);
+        while (Processes::ProcessExists(wExePath, wArgsPattern)) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(500));
+        }
+    }
+
+    inline void WaitForActiveProcess(const std::string& exePath, const std::string& argsPattern) {
+        if (argsPattern.empty()) {
+            Console::Info("-- Waiting for process: {}", exePath);
+        } else {
+            Console::Info("-- Waiting for process: {}\n   with args: {}", exePath, argsPattern);
+        }
+        auto wExePath = StringUtils::StringToWString(exePath);
+        auto wArgsPattern = StringUtils::StringToWString(argsPattern);
+        while (!Processes::ProcessExists(wExePath, wArgsPattern)) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(500));
+        }
+    }
 }

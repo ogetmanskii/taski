@@ -1,12 +1,12 @@
-#include "args.hpp"
-#include "../../include/CLI11.hpp"
+#include "Args.hpp"
+#include "../../libs/CLI11.hpp"
 #include <filesystem>
 #include <iostream>
 #include <optional>
 
 namespace devkit {
     
-    const Args GetArgs(int argc, char* argv[]) {
+    const Args Args::FromArgv(int argc, char* argv[]) {
         CLI::App app;
         app.allow_windows_style_options(true);
         argv = app.ensure_utf8(argv);

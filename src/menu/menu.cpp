@@ -1,7 +1,9 @@
-#include "menu.hpp"
-#include "../logging/console_logging.hpp"
-#include "../util/util.hpp"
-#include "../context/app_context.hpp"
+#include "Menu.hpp"
+#include "MenuItem.hpp"
+#include "../console/Console.hpp"
+#include "../console/Color.hpp"
+#include "../context/AppContext.hpp"
+#include "../context/PipelineContext.hpp"
 
 #include <iostream>
 #include <unordered_map>
@@ -18,7 +20,10 @@
 #define NOMINMAX
 #include <windows.h>
 
-namespace devkit {
+namespace devkit::Menu {
+
+    using namespace devkit;
+    using namespace devkit::Console;
 
     static std::pair<int /* width */, int /* height */> GetConsoleBounds() {
         CONSOLE_SCREEN_BUFFER_INFO csbi;
@@ -83,7 +88,7 @@ namespace devkit {
                     const auto& item = menuChoices[index];
 
                     std::string paddedKey = PadRight(item.key, maxKeyWidth);
-                    std::cout << color::cyan(paddedKey) << " " << *item.title;
+                    std::cout << Color::Cyan(paddedKey) << " " << *item.title;
 
                     int currentWidth = maxKeyWidth + 1 + item.width;
                     int padding = maxVisualWidth - columnSpacing - currentWidth;
@@ -101,7 +106,7 @@ namespace devkit {
     }
 
     // Возвращает true, если что-то выбрано в меню
-    bool ShowMenu(const std::vector<MenuItem>& items, std::shared_ptr<AppContext> appContext) {
+    bool Show(const std::vector<MenuItem>& items, std::shared_ptr<devkit::AppContext> appContext) {
 
         std::unordered_map<std::string, const MenuItem*> actions;
         size_t minWidth = 1;
@@ -126,7 +131,7 @@ namespace devkit {
 
         bool correctPipeline = true;
         bool anySelected = false;
-        PipelineContext pipeline(appContext);
+        devkit::PipelineContext pipeline(appContext);
         std::string action;
         std::stringstream sstream(line);
         while (std::getline(sstream, action, ' ')) {
@@ -139,7 +144,7 @@ namespace devkit {
                 try {
                     item->pipelineAction(*appContext, pipeline);
                 } catch (const std::exception& e) {
-                    info("-- Incorrect pipeline: {}", e.what());
+                    Info("-- Incorrect pipeline: {}", e.what());
                     correctPipeline = false;
                 }
             } else {
@@ -151,7 +156,7 @@ namespace devkit {
             try {
                 pipeline.Run();
             } catch (const std::exception& e) {
-                info("{}: {}", color::red("Error"), e.what());
+                Info("{}: {}", Color::Red("Error"), e.what());
                 return true;
             }
         }

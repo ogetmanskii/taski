@@ -1,13 +1,3 @@
-#include "logging/console_logging.hpp"
-#include "menu/menu.hpp"
-#include "processes/processes.hpp"
-#include "parsing/parsing.hpp"
-#include "util/util.hpp"
-#include "tasks/tasks.hpp"
-#include "parsing/env_parser.hpp"
-#include "args/args.hpp"
-#include "action/action.hpp"
-#include "context/app_context.hpp"
 #include <optional>
 #include "stdlib.h"
 #include "conio.h"
@@ -17,9 +7,28 @@
 #include <algorithm>
 #include <vector>
 #include <memory>
+
 #include "../build/generated/version.h"
 
+#include "console/Console.hpp"
+#include "console/Color.hpp"
+#include "menu/Menu.hpp"
+#include "processes/processes.hpp"
+#include "parsing/parsing.hpp"
+#include "parsing/env_parser.hpp"
+#include "args/Args.hpp"
+#include "context/AppContext.hpp"
+#include "task/Task.hpp"
+#include "action/Action.hpp"
+#include "action/RunTaskAction.hpp"
+#include "action/StartServiceAction.hpp"
+#include "action/StopServiceAction.hpp"
+#include "action/ActionUtils.hpp"
+
 using namespace devkit;
+using namespace devkit::Console;
+using namespace devkit::Menu;
+
 namespace fs = std::filesystem;
 
 static std::unordered_map<std::string, std::string> GetEnv(const fs::path& currentPath, const std::string& dotEnvFile) {
@@ -31,12 +40,12 @@ static std::unordered_map<std::string, std::string> GetEnv(const fs::path& curre
             const auto& pair = *it;
             std::string envString = pair.first + "=" + pair.second;
             if (putenv(envString.c_str()) != 0) {
-                info("Warning: could not set env string: {}", envString);
+                Info("Warning: could not set env string: {}", envString);
             }
         }
         return env;
     } catch (const std::exception& e) {
-        info("Could not parse .env file: {}", e.what());
+        Info("Could not parse .env file: {}", e.what());
         return std::unordered_map<std::string, std::string>();
     }
 }
@@ -51,7 +60,7 @@ static void ParseEnvironment(
     try {
         ParseServicesYml(currentPath / environmentFile, env, outServices, outTasks);
     } catch (const std::exception& e) {
-        info("Could not parse services: {}", e.what());
+        Info("Could not parse services: {}", e.what());
     }
 }
 
@@ -91,14 +100,14 @@ static void RunUserMenu(std::shared_ptr<AppContext> context) {
             const std::string& serviceName = service->definition.name;
             if (status == ServiceStatus::UP) {
                 menu.push_back(MenuItem(
-                    std::format("{} {}", serviceName, color::green("on")), 
+                    std::format("{} {}", serviceName, Color::Green("on")), 
                     std::format("Stop {}", serviceName), 
                     [&](AppContext& ctx, PipelineContext& pipeline) {
                         RegisterStopServiceAction(ctx, pipeline, service);
                     }));
             } else if (status == ServiceStatus::DOWN) {
                 menu.push_back(MenuItem(
-                    std::format("{} {}", serviceName, color::gray("off")),
+                    std::format("{} {}", serviceName, Color::Gray("off")),
                     std::format("Start {}", serviceName),
                     [&](AppContext& ctx, PipelineContext& pipeline) {
                         RegisterStartServiceAction(ctx, pipeline, service);
@@ -127,7 +136,7 @@ static void RunUserMenu(std::shared_ptr<AppContext> context) {
             ));
         }
         
-        if (devkit::ShowMenu(menu, context)) {
+        if (Menu::Show(menu, context)) {
             while (!IsReturn(_getch())) {
 
             }
@@ -141,18 +150,18 @@ static void ExecuteCommands(std::shared_ptr<AppContext> ctx, const Args& args) {
         RunUserMenu(ctx);
     } else if (args.listCommand) {
         if (!ctx->GetServices().empty()) {
-            info("-- Services --");
+            Info("-- Services --");
             for (auto& service : ctx->GetServices()) {
-                info("{}", service->definition.name);
+                Info("{}", service->definition.name);
             }
         }
         if (!ctx->GetTasks().empty()) {
-            info("-- Tasks --");
+            Info("-- Tasks --");
             for (auto& task : ctx->GetTasks()) {
                 if (task->IsHidden()) {
                     continue;
                 }
-                info("{}", task->GetName());
+                Info("{}", task->GetName());
             }
         }
     } else if (args.printStatus) {
@@ -161,11 +170,11 @@ static void ExecuteCommands(std::shared_ptr<AppContext> ctx, const Args& args) {
             auto status = service->Status(activeProcesses);
             const std::string& serviceName = service->definition.name;
             if (status == ServiceStatus::UP) {
-                info("{} {}", serviceName, color::green("on"));
+                Info("{} {}", serviceName, Color::Green("on"));
             } else if (status == ServiceStatus::DOWN) {
-                info("{} {}", serviceName, color::gray("off"));
+                Info("{} {}", serviceName, Color::Gray("off"));
             } else {
-                info("{} {}", serviceName, "??");
+                Info("{} {}", serviceName, "??");
             }
         }
     } else if (args.upCommand) {
@@ -214,14 +223,14 @@ static void ExecuteCommands(std::shared_ptr<AppContext> ctx, const Args& args) {
 }
 
 int main(int argc, char* argv[]) {
-    InitConsole();
-    Args args = GetArgs(argc, argv);
+    Console::Init();
+    Args args = Args::FromArgv(argc, argv);
     if (args.exitCode.has_value()) {
         return *args.exitCode;
     }
 
     if (args.versionCommand) {
-        info(Version::GetVersion());
+        Info(Version::GetVersion());
         return 0;
     }
 
@@ -248,7 +257,7 @@ int main(int argc, char* argv[]) {
         try {
             ExecuteCommands(context, args);
         } catch (const std::exception& e) {
-            info("Error: {}", e.what());
+            Info("Error: {}", e.what());
             return 1;
         }
     } else {

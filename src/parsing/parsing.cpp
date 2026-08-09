@@ -1,10 +1,11 @@
 #include "inja/inja.hpp"
 #include "yaml-cpp/yaml.h"
 #include "parsing.hpp"
-#include "../logging/console_logging.hpp"
-#include "../util/util.hpp"
-#include "../services/services.hpp"
+#include "../console/Console.hpp"
+#include "../service/Service.hpp"
+#include "../task/ShellCommandTask.hpp"
 #include "inja_env.hpp"
+#include "../util/FileUtils.hpp"
 
 #include <algorithm>
 #include <filesystem>
@@ -149,7 +150,7 @@ namespace devkit {
                 auto definition = ParseService(serviceTag, serviceNode, env);
                 outServices.push_back(std::make_shared<Service>(std::move(definition)));
             } catch (const std::exception& e) {
-                info("Could not parse service: {}", e.what());
+                Info("Could not parse service: {}", e.what());
             }
         }
     }
@@ -208,7 +209,7 @@ namespace devkit {
             try {
                 outTasks.push_back(ParseTask(taskTag, taskNode, env));
             } catch (const std::exception& e) {
-                info("Could not parse task: {}", e.what());
+                Info("Could not parse task: {}", e.what());
             }
         }
     }
@@ -219,7 +220,7 @@ namespace devkit {
         std::vector<std::shared_ptr<Service>>& outServices,
         std::vector<std::shared_ptr<Task>>& outTasks
     ) {
-        std::string yaml = RenderInjaTemplate(devkit::ReadFileUtf8(filePath), env);
+        std::string yaml = RenderInjaTemplate(devkit::FileUtils::ReadFileUtf8(filePath), env);
 
         YAML::Node rootNode = YAML::Load(yaml);
         if (!rootNode.IsMap()) {

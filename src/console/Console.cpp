@@ -1,7 +1,9 @@
-#include "console_logging.hpp"
+#include "Console.hpp"
+
+#define NOMINMAX
 #include <Windows.h>
 
-namespace devkit {
+namespace devkit::Console {
     static void EnableAnsiSupport() {
         HANDLE out = GetStdHandle(STD_OUTPUT_HANDLE);
         DWORD mode = 0;
@@ -9,7 +11,7 @@ namespace devkit {
         SetConsoleMode(out, mode | ENABLE_VIRTUAL_TERMINAL_PROCESSING);
     }
 
-    void InitConsole() {
+    void Init() {
         EnableAnsiSupport();
         SetConsoleCP(CP_UTF8);
         SetConsoleOutputCP(CP_UTF8);

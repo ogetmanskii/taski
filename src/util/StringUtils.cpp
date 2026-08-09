@@ -1,7 +1,9 @@
 #include <string>
+#define NOMINMAX
 #include <Windows.h>
 
-namespace devkit {
+namespace devkit::StringUtils {
+
     std::wstring StringToWString(const std::string& str) {
         if (str.empty()) return std::wstring();
 

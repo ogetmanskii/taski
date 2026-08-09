@@ -1,8 +1,7 @@
 #pragma once
 
-#include "../util/util.hpp"
-#include "../services/services.hpp"
-#include "../tasks/tasks.hpp"
+#include "../service/Service.hpp"
+#include "../task/Task.hpp"
 
 #include <string>
 #include <filesystem>

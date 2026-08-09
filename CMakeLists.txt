@@ -49,10 +49,10 @@ find_package(GTest REQUIRED)
 add_executable(
     cli 
     "src/main.cpp"
-    "src/menu/menu.cpp"
-    "src/processes/processes.cpp"
-    "src/logging/console_logging.cpp"
-    "src/util/util.cpp" "src/parsing/parsing.cpp"  "src/util/win_create_process.cpp"    "src/util/wstring.cpp" "src/parsing/env_parser.cpp"   "src/args/args.cpp" "src/context/pipeline_context.cpp" "src/action/action.cpp")
+    "src/menu/Menu.cpp"
+    "src/processes/WindowsProcesses.cpp"
+    "src/console/Console.cpp"
+     "src/parsing/parsing.cpp"  "src/shell/WindowsShellRunner.cpp"    "src/util/StringUtils.cpp" "src/parsing/env_parser.cpp"   "src/args/Args.cpp"  "src/action/ActionUtils.cpp" "src/context/PipelineContext.cpp")
 target_compile_features(cli PRIVATE cxx_std_20)
 target_link_libraries(cli
     pantor::inja
@@ -72,21 +72,6 @@ set_target_properties(cli PROPERTIES
     SOVERSION ${PROJECT_VERSION_MAJOR}
 )
 
-add_executable(
-    testrunner 
-    "tests/processes_test.cpp"
-    "src/menu/menu.cpp"
-    "src/processes/processes.cpp"
-    "src/logging/console_logging.cpp"
-    
- "src/util/util.cpp" "src/parsing/parsing.cpp"  "src/util/win_create_process.cpp"    "tests/strings_test.cpp" "src/util/wstring.cpp" "src/parsing/env_parser.cpp"    "src/args/args.cpp" "src/context/pipeline_context.cpp" "src/action/action.cpp")
-target_compile_features(testrunner PRIVATE cxx_std_20)
-target_link_libraries(testrunner PRIVATE
-    GTest::gtest
-    GTest::gtest_main
-    pantor::inja
-    yaml-cpp::yaml-cpp
-)
 add_executable("test-executable" "test_executable/main.cpp")
 target_compile_features("test-executable" PRIVATE cxx_std_20)
 

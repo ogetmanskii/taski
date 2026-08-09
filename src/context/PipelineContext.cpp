@@ -1,9 +1,12 @@
-#include "app_context.hpp"
-#include "../action/action.hpp"
-#include <exception>
-#include <chrono>
+#include "PipelineContext.hpp"
+#include "../console/Color.hpp"
+#include "../console/DurationFormatter.hpp"
 
 namespace devkit {
+
+    using namespace Console;
+    using namespace Console::Color;
+
     void PipelineContext::Run() {
         if (actions.empty()) {
             return;
@@ -18,21 +21,21 @@ namespace devkit {
         int i = 1;
         for (auto& action : actions) {
             if (action->Counting()) {
-                info("\n-- [{}/{}] {}", i, total, action->Description());
+                Info("\n-- [{}/{}] {}", i, total, action->Description());
                 i++;
             } else {
-                info("\n-- {}", action->Description());
+                Info("\n-- {}", action->Description());
             }
             try {
                 action->Run(*appContext, *this);
             } catch (const std::exception& e) {
                 std::string message = std::format("-- {}: failed: {}", action->Description(), e.what());
-                info(message);
+                Info(message);
                 throw e;
             }
         }
         auto pipelineEnd = std::chrono::high_resolution_clock::now();
         auto totalMs = std::chrono::duration_cast<std::chrono::milliseconds>(pipelineEnd - pipelineStart).count();
-        info("\n-- {}: completed in {}", color::green("OK"), DurationFormatter::Format(totalMs));
+        Info("\n-- {}: completed in {}", Color::Green("OK"), DurationFormatter::Format(totalMs));
     }
 }

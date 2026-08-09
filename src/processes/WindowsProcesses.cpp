@@ -1,3 +1,4 @@
+#define NOMINMAX
 #include <Windows.h>
 #include <TlHelp32.h>
 #include <string>
@@ -8,8 +9,14 @@
 #include <winternl.h>
 
 #include "processes.hpp"
+#include "../util/PathUtils.hpp"
+#include "../util/WildcardMatcher.hpp"
 
-namespace devkit {
+namespace devkit::Processes {
+
+    using namespace PathUtils;
+    using namespace WildcardMatcher;
+
     static inline std::wstring ExtractArgs(const std::wstring& fullCmdLine) {
         if (fullCmdLine.empty()) return L"";
 

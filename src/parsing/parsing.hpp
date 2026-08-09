@@ -5,8 +5,8 @@
 #include <vector>
 #include <unordered_map>
 #include <memory>
-#include "../services/services.hpp"
-#include "../tasks/tasks.hpp"
+#include "../service/Service.hpp"
+#include "../task/Task.hpp"
 
 namespace devkit {
 

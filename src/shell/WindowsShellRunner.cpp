@@ -13,11 +13,13 @@
 #include <cctype>
 #include <tlhelp32.h>
 #include <psapi.h>
-#include "../logging/console_logging.hpp"
+#include "../console/Console.hpp"
 #include "../processes/processes.hpp"
-#include "../util/util.hpp"
+#include "../util/StringUtils.hpp"
 
-namespace devkit {
+namespace devkit::ShellRunner {
+
+    using namespace StringUtils;
 
     // Вспомогательная функция для создания строки окружения
     static std::wstring CreateEnvironmentBlock(const std::unordered_map<std::string, std::string>& extraEnv) {
@@ -130,7 +132,7 @@ namespace devkit {
 
         std::wstring envBlock = CreateEnvironmentBlock(environment);
 
-        info("-- Run: {}", command);
+        Console::Info("-- Run: {}", command);
         if (!wWorkingDir.empty()) {
             std::wcout << L"   in: " << wWorkingDir << std::endl;
         }
@@ -188,7 +190,7 @@ namespace devkit {
     }
 
     // Простой запуск с ожиданием завершения
-    int RunShellCommand(
+    int Run(
         const std::string& command,
         const std::string& workingDirectory,
         const std::unordered_map<std::string, std::string>& environment,
@@ -214,7 +216,7 @@ namespace devkit {
     }
 
     // Запуск с отсоединением после указанного времени
-    std::optional<int> RunShellCommand(
+    std::optional<int> Run(
         const std::string& command,
         const std::string& workingDirectory,
         const std::unordered_map<std::string, std::string>& environment,
@@ -286,7 +288,7 @@ namespace devkit {
     }
 
     // Запуск с отсоединением после получения определенного сообщения
-    std::optional<int> RunShellCommand(
+    std::optional<int> Run(
         const std::string& command,
         const std::string& workingDirectory,
         const std::unordered_map<std::string, std::string>& environment,
