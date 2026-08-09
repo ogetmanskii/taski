@@ -5,19 +5,28 @@
 
 namespace devkit {
     void PipelineContext::Run() {
-        int total = actions.size();
-        if (total == 0) {
+        if (actions.empty()) {
             return;
+        }
+        int total = 0;
+        for (auto& action : actions) {
+            if (action->Counting()) {
+                total++;
+            }
         }
         auto pipelineStart = std::chrono::high_resolution_clock::now();
         int i = 1;
         for (auto& action : actions) {
-            info("\n-- [{}/{}] {}", i, total, action->Description());
+            if (action->Counting()) {
+                info("\n-- [{}/{}] {}", i, total, action->Description());
+                i++;
+            } else {
+                info("\n-- {}", action->Description());
+            }
             try {
                 action->Run(*appContext, *this);
-                i++;
             } catch (const std::exception& e) {
-                std::string message = std::format("-- [{}/{}] {}: failed: {}", i, total, action->Description(), e.what());
+                std::string message = std::format("-- {}: failed: {}", action->Description(), e.what());
                 info(message);
                 throw e;
             }

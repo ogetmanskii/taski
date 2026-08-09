@@ -18,6 +18,7 @@ namespace devkit {
         virtual ~Action() = default;
         virtual void Run(AppContext& appCtx, PipelineContext& pipeline) = 0;
         virtual std::string Description() = 0;
+        virtual bool Counting() = 0;
     };
 
     class StartServiceAction : public Action {
@@ -32,6 +33,10 @@ namespace devkit {
 
         std::string Description() override {
             return "Start " + service->definition.name;
+        }
+
+        bool Counting() {
+            return true;
         }
 
     private:
@@ -52,6 +57,10 @@ namespace devkit {
             return "Stop " + service->definition.name;
         }
 
+        bool Counting() {
+            return true;
+        }
+
     private:
         std::shared_ptr<Service> service;
     };
@@ -68,6 +77,10 @@ namespace devkit {
 
         std::string Description() override {
             return task->GetName();
+        }
+
+        bool Counting() {
+            return true;
         }
 
     private:
@@ -97,6 +110,10 @@ namespace devkit {
 
         std::string Description() override {
             return "Ensure " + serviceName + " is up";
+        }
+
+        bool Counting() {
+            return false;
         }
 
     private:
