@@ -1,12 +1,15 @@
 #pragma once
+
+#include <exception>
+
 #include <action/Action.hpp>
 #include <Pipeline.hpp>
 
 namespace devkit {
 
-    class EnsureServiceIsUpAction : public Action {
+    class EnsureServiceIsHealthyAction : public Action {
     public:
-        EnsureServiceIsUpAction(std::string serviceName)
+        EnsureServiceIsHealthyAction(std::string serviceName)
             : serviceName(std::move(serviceName)) {
         }
 
@@ -22,6 +25,9 @@ namespace devkit {
                 service.Start(pipeline.ActiveProcesses());
             } else if (status == ServiceStatus::UNKNOWN) {
                 Info("-- {} is in unknown state. Do nothing");
+            }
+            if (!service.WaitForHealthy()) {
+                throw std::runtime_error(serviceName + " not healthy");
             }
         }
 

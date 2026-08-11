@@ -155,7 +155,13 @@ int main(int argc, char* argv[]) {
     fs::current_path(path);
 
     // Override env
-    std::unordered_map<std::string, std::string> env = Parser::ParseDotEnvFile(path / args.dotEnvFile);
+    std::unordered_map<std::string, std::string> env;
+    try {
+        Parser::ParseDotEnvFile(path / args.dotEnvFile, env);
+    } catch (const std::exception& e) {
+        Console::Info("Could not parse .env file " + path.string() + ": " + e.what());
+        return 1;
+    }
     for (auto& it : env) {
         PutEnv(it);
     }

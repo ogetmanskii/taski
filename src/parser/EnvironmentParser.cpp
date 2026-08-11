@@ -20,7 +20,22 @@ namespace {
     using namespace devkit::YamlUtils;
     using namespace devkit::TemplateUtils;
 
-    devkit::ServiceDefinition ParseService(
+    std::optional<HealthcheckDefinition> ParseHealthcheck(const YAML::Node& healthcheckNode) {
+        if (!healthcheckNode) {
+            return std::nullopt;
+        }
+        if (!healthcheckNode.IsMap()) {
+            return std::nullopt;
+        }
+        return HealthcheckDefinition {
+            .command = GetShellCommandSequence(healthcheckNode["command"]),
+            .exitCodes = GetList<int>(healthcheckNode["exitCodes"]),
+            .interval = GetOptional<int>(healthcheckNode["interval"]).value_or(5),
+            .timeout = GetOptional<int>(healthcheckNode["timeout"]).value_or(30)
+        };
+    }
+
+    ServiceDefinition ParseService(
         const std::string& tagName,
         const YAML::Node& serviceNode,
         const std::unordered_map<std::string, std::string>& env) {
@@ -33,7 +48,8 @@ namespace {
             .startCommand = GetShellCommandSequence(serviceNode["startCommand"]),
             .stopCommand = GetShellCommandSequence(serviceNode["stopCommand"]),
             .detachAfterSeconds = GetOptional<int>(serviceNode["detachAfterSeconds"]),
-            .detachAfterMessage = GetOptional<std::string>(serviceNode["detachAfterMessage"])
+            .detachAfterMessage = GetOptional<std::string>(serviceNode["detachAfterMessage"]),
+            .healthcheck = ParseHealthcheck(serviceNode["healthcheck"])
         };
         def.name = GetOptional<std::string>(serviceNode["name"]).value_or(tagName);
 
@@ -138,21 +154,25 @@ namespace devkit::Parser {
         std::vector<std::shared_ptr<Service>>& outServices,
         std::vector<std::shared_ptr<Task>>& outTasks) {
 
-        std::string yaml = RenderTemplate(FileUtils::ReadFileUtf8(filePath), env);
+        try {
+            std::string yaml = RenderTemplate(FileUtils::ReadFileUtf8(filePath), env);
 
-        YAML::Node rootNode = YAML::Load(yaml);
-        if (!rootNode.IsMap()) {
-            return;
-        }
+            YAML::Node rootNode = YAML::Load(yaml);
+            if (!rootNode.IsMap()) {
+                return;
+            }
 
-        YAML::Node servicesNode = rootNode["services"];
-        if (servicesNode.IsMap()) {
-            ParseServices(servicesNode, env, outServices);
-        }
+            YAML::Node servicesNode = rootNode["services"];
+            if (servicesNode.IsMap()) {
+                ParseServices(servicesNode, env, outServices);
+            }
 
-        YAML::Node tasksNode = rootNode["tasks"];
-        if (tasksNode.IsMap()) {
-            ParseTasks(tasksNode, env, outTasks);
+            YAML::Node tasksNode = rootNode["tasks"];
+            if (tasksNode.IsMap()) {
+                ParseTasks(tasksNode, env, outTasks);
+            }
+        } catch (const std::exception& e) {
+            Console::Info("Could not parse " + filePath.string() + ": " + e.what());
         }
     }
 }

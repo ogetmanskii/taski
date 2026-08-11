@@ -7,6 +7,8 @@
 #include <filesystem>
 #include <memory>
 #include <exception>
+#include <chrono>
+#include <thread>
 
 #include <Processes.hpp>
 #include <ShellRunner.hpp>
@@ -47,6 +49,37 @@ namespace devkit {
                 return ServiceStatus::UP;
             } else {
                 return ServiceStatus::DOWN;
+            }
+        }
+
+        // Возвращает true, если сервис healthy, иначе false
+        bool WaitForHealthy() const {
+            if (!definition.healthcheck.has_value()) {
+                return true; // Если healthcheck не задан, считаем сервис здоровым
+            }
+            Utf8Guard utf8(definition.utf8);
+            HealthcheckDefinition healthcheck = *definition.healthcheck;
+            auto startTime = std::chrono::steady_clock::now();
+            while (true) {
+                auto currentTime = std::chrono::steady_clock::now();
+                auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(currentTime - startTime).count();
+                if (elapsed >= healthcheck.timeout) {
+                    return false;
+                }
+                RunResult result = ShellRunner::Run(
+                    JoinShellCommands(healthcheck.command),
+                    definition.workingDirectory,
+                    definition.environment,
+                    false,
+                    healthcheck.timeout
+                );
+                if (ShellRunner::IsValidExitCode(result, healthcheck.exitCodes)) {
+                    Info("{} is healthy", definition.name);
+                    return true;
+                } else {
+                    Info("{} not healthy yet", definition.name);
+                }
+                std::this_thread::sleep_for(std::chrono::seconds(healthcheck.interval));
             }
         }
 

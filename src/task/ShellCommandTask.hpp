@@ -44,7 +44,7 @@ namespace devkit {
             if (result.timedOut) {
                 throw std::runtime_error("Task " + name + " timed out");
             }
-            if (!IsValidExitCode(result)) {
+            if (!ShellRunner::IsValidExitCode(result, exitCodes)) {
                 throw std::runtime_error("Task " + name + " exited with code: " + std::to_string(result.exitCode.value_or(-1)));
             }
         }
