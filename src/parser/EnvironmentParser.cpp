@@ -87,6 +87,7 @@ namespace {
         std::vector<std::string> after = GetList<std::string>(node["after"]);
         bool hidden = GetBool(node["hidden"], false);
         bool utf8 = GetBool(node["utf8"], true);
+        int timeout = GetOptional<int>(node["timeout"]).value_or(-1);
         std::vector<int> exitCodes = GetList<int>(node["exitCodes"]);
         auto& commandNode = node["command"];
         if (!commandNode) {
@@ -101,6 +102,7 @@ namespace {
             std::move(dependsOn),
             std::move(before),
             std::move(after),
+            timeout,
             std::move(exitCodes),
             std::move(commands),
             std::move(workingDirectory),

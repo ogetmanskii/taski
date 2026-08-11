@@ -35,7 +35,7 @@ int main(int argc, char* argv[]) {
         return 0;
     }
     for (auto it = args.begin(); it != args.end(); it++) {
-        auto pair = *it;
+        auto& pair = *it;
         if (pair.first == "--sleep") {
             int seconds = std::stoi(std::string(pair.second));
             if (seconds > 0) {

@@ -16,6 +16,7 @@
 #include <psapi.h>
 
 #include <Processes.hpp>
+#include <ShellRunner.hpp>
 #include <console/Console.hpp>
 #include <util/StringUtils.hpp>
 
@@ -191,30 +192,86 @@ namespace devkit::ShellRunner {
         }
     }
 
+    static void TerminateProcessTree(DWORD processId) {
+        HANDLE hSnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+        PROCESSENTRY32 pe = { sizeof(PROCESSENTRY32) };
+
+        if (Process32First(hSnapshot, &pe)) {
+            do {
+                if (pe.th32ParentProcessID == processId) {
+                    HANDLE hChild = OpenProcess(PROCESS_TERMINATE, FALSE, pe.th32ProcessID);
+                    if (hChild) {
+                        TerminateProcess(hChild, 1);
+                        CloseHandle(hChild);
+                    }
+                    TerminateProcessTree(pe.th32ProcessID);
+                }
+            } while (Process32Next(hSnapshot, &pe));
+        }
+        CloseHandle(hSnapshot);
+
+        HANDLE hProcess = OpenProcess(PROCESS_TERMINATE, FALSE, processId);
+        if (hProcess) {
+            TerminateProcess(hProcess, 1);
+            CloseHandle(hProcess);
+        }
+    }
+
     // Простой запуск с ожиданием завершения
-    int Run(
+    RunResult Run(
         const std::string& command,
         const std::string& workingDirectory,
         const std::unordered_map<std::string, std::string>& environment,
-        bool createNewProcessGroup
+        bool createNewProcessGroup,
+        int timeoutSeconds
     ) {
         HANDLE hStdOutRead, hStdOutWrite;
         HANDLE hProcess = CreateChildProcess(command, workingDirectory, environment, createNewProcessGroup, hStdOutRead, hStdOutWrite);
 
-        // Читаем вывод в отдельном потоке
         std::thread outputThread([hStdOutRead]() {
             ReadProcessOutput(hStdOutRead, true);
         });
 
-        // Ждем завершения процесса
-        WaitForSingleObject(hProcess, INFINITE);
         DWORD exitCode;
-        GetExitCodeProcess(hProcess, &exitCode);
-        // Очистка
+
+        if (timeoutSeconds < 0) {
+            WaitForSingleObject(hProcess, INFINITE);
+            GetExitCodeProcess(hProcess, &exitCode);
+        } else {
+            DWORD waitResult = WaitForSingleObject(hProcess, timeoutSeconds * 1000);
+            if (waitResult == WAIT_OBJECT_0) {
+                GetExitCodeProcess(hProcess, &exitCode);
+            } else if (waitResult == WAIT_TIMEOUT) {
+                TerminateProcessTree(GetProcessId(hProcess));
+                outputThread.join();
+                CloseHandle(hStdOutRead);
+                CloseHandle(hProcess);
+                return RunResult {
+                    .exitCode = std::nullopt,
+                    .timedOut = true,
+                    .errorCode = std::nullopt
+                };
+            } else {
+                outputThread.join();
+                CloseHandle(hStdOutRead);
+                CloseHandle(hProcess);
+
+                return RunResult {
+                   .exitCode = std::nullopt,
+                   .timedOut = false,
+                   .errorCode = GetLastError()
+                };
+            }
+        }
         outputThread.join();
         CloseHandle(hStdOutRead);
         CloseHandle(hProcess);
-        return exitCode;
+
+        return RunResult {
+            .exitCode = exitCode,
+            .timedOut = false,
+            .errorCode = std::nullopt
+        };
     }
 
     // Запуск с отсоединением после указанного времени

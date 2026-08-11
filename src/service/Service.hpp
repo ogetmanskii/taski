@@ -19,6 +19,7 @@ namespace devkit {
 
     using namespace Console;
     using namespace StringUtils;
+    using namespace ShellRunner;
 
     enum ServiceStatus {
         UP,
@@ -115,18 +116,21 @@ namespace devkit {
                     return;
                 }
             } else {
-                int exitCode = ShellRunner::Run(
+                RunResult result = ShellRunner::Run(
                     JoinShellCommands(definition.startCommand),
                     definition.workingDirectory,
                     definition.environment,
                     true
                 );
                 Info("\n");
+                if (!result.exitCode) {
+                    throw std::runtime_error("Start command failed with no exit code");
+                }
+                int exitCode = *result.exitCode;
                 if (exitCode != 0) {
                     throw std::runtime_error("Start command exited with code: " + std::to_string(exitCode));
                 }
             }
         }
-
     };
 }

@@ -20,6 +20,7 @@ namespace devkit {
             std::vector<std::string> dependsOn,
             std::vector<std::string> before,
             std::vector<std::string> after,
+            int timeout,
             std::vector<int> exitCodes
         ) :
             name(std::move(name)),
@@ -28,6 +29,7 @@ namespace devkit {
             dependsOn(std::move(dependsOn)),
             before(std::move(before)),
             after(std::move(after)),
+            timeout(timeout),
             exitCodes(std::move(exitCodes))
         { }
 
@@ -61,9 +63,14 @@ namespace devkit {
         const std::vector<std::string> dependsOn;
         const std::vector<std::string> before;
         const std::vector<std::string> after;
+        const int timeout;
         const std::vector<int> exitCodes;
 
-        bool IsValidExitCode(int exitCode) const {
+        bool IsValidExitCode(RunResult runResult) const {
+            if (!runResult.exitCode) {
+                return false;
+            }
+            int exitCode = runResult.exitCode.value();
             return (exitCodes.empty() && exitCode == 0)
                 || (std::find(exitCodes.begin(), exitCodes.end(), exitCode) != exitCodes.end());
         }

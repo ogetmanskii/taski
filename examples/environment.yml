@@ -68,6 +68,8 @@ tasks:
       HELLO_WORLD: "Hello World"
     # Команда
     command: echo %HELLO_WORLD%
+    # Таймаут выполнения в секундах
+    timeout: 3
 
   mkdir-data:
     # Задачи можно скрывать из списка задач.
