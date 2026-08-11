@@ -65,14 +65,5 @@ namespace devkit {
         const std::vector<std::string> after;
         const int timeout;
         const std::vector<int> exitCodes;
-
-        bool IsValidExitCode(RunResult runResult) const {
-            if (!runResult.exitCode) {
-                return false;
-            }
-            int exitCode = runResult.exitCode.value();
-            return (exitCodes.empty() && exitCode == 0)
-                || (std::find(exitCodes.begin(), exitCodes.end(), exitCode) != exitCodes.end());
-        }
     };
 }

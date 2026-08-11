@@ -54,6 +54,17 @@ services:
     #  подпадающим под фильтр monitorProcess.
     stopCommand: bin\pg_ctl stop -D data
 
+    # Проверка здоровья сервиса
+    healthcheck:
+      # Команда для проверки. Наследует workingDirectory и environment от сервиса
+      command: bin\pg_isready -h localhost -d postgres -U postgres
+      # Ожидаемые коды возврата команды
+      exitCodes: [0]
+      # Интвервал проверки в секундах
+      interval: 1
+      # Таймаут для проверок в секундах
+      timeout: 15
+
 tasks:
   helloWorldTask:
     # Название задачи - опционально

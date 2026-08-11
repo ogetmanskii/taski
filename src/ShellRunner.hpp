@@ -38,4 +38,13 @@ namespace devkit::ShellRunner {
         const std::unordered_map<std::string, std::string>& environment, 
         const std::string& detachAfterMessage
     );
+
+    inline bool IsValidExitCode(RunResult runResult, std::vector<int> expectedExitCodes) {
+        if (!runResult.exitCode) {
+            return false;
+        }
+        int exitCode = runResult.exitCode.value();
+        return (expectedExitCodes.empty() && exitCode == 0)
+            || (std::find(expectedExitCodes.begin(), expectedExitCodes.end(), exitCode) != expectedExitCodes.end());
+    }
 }

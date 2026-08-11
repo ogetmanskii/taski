@@ -6,6 +6,19 @@
 #include <unordered_map>
 
 namespace devkit {
+
+    struct HealthcheckDefinition {
+        // Команда для проверки
+        std::vector<std::string> command;
+        // Успешные коды выхода команды проверки
+        std::vector<int> exitCodes;
+
+        // Интервал между вызовами команды
+        int interval;
+        // Таймаут в секундах, после которого, если сервис всё еще не healthy, то выбрасывать исключение
+        int timeout;
+    };
+
     struct ServiceDefinition {
         std::string name;
         std::vector<std::string> dependsOn;
@@ -20,5 +33,7 @@ namespace devkit {
 
         std::optional<std::string> monitorProcess;
         std::optional<std::string> monitorProcessArgsPattern;
+
+        std::optional<HealthcheckDefinition> healthcheck;
     };
 }

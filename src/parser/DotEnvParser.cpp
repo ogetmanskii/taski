@@ -23,14 +23,12 @@ namespace {
 
 namespace devkit::Parser {
 
-    std::unordered_map<std::string, std::string> ParseDotEnvFile(const fs::path& path) {
+    void ParseDotEnvFile(const fs::path& path, std::unordered_map<std::string, std::string>& outEnv) {
         static inja::Environment injaEnv = GetInjaEnvironment();
-
-        std::unordered_map<std::string, std::string> data;
 
         std::ifstream file(path.string());
         if (!file.is_open()) {
-            return data;
+            return;
         }
 
         nlohmann::json jsonData;
@@ -49,9 +47,8 @@ namespace devkit::Parser {
             std::string key = TrimWhitespace(line.substr(0, delimiterPos));
             std::string value = TrimWhitespace(line.substr(delimiterPos + 1));
 
-            data[key] = injaEnv.render(value, jsonData);
-            jsonData[key] = data[key];
+            outEnv[key] = injaEnv.render(value, jsonData);
+            jsonData[key] = outEnv[key];
         }
-        return data;
     }
 }

@@ -6,7 +6,7 @@
 
 #include <ApplicationContext.hpp>
 #include <action/Action.hpp>
-#include <action/EnsureServiceisUpAction.hpp>
+#include <action/EnsureServiceisHealthyAction.hpp>
 #include <action/StopServiceAction.hpp>
 #include <action/StartServiceAction.hpp>
 #include <action/RunTaskAction.hpp>
@@ -76,7 +76,7 @@ namespace devkit::Plan {
 
     inline void PlanStartService(ApplicationContext& ctx, Pipeline& pipeline, std::shared_ptr<Service> service) {
         for (auto& dependsOnServiceName : GetAllDependsOnServices(ctx, *service)) {
-            pipeline.Plan(std::make_shared<EnsureServiceIsUpAction>(dependsOnServiceName));
+            pipeline.Plan(std::make_shared<EnsureServiceIsHealthyAction>(dependsOnServiceName));
         }
         pipeline.Plan(std::make_shared<StartServiceAction>(service));
     }

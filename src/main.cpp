@@ -1,5 +1,4 @@
 #include <optional>
-#include <iostream>
 #include <filesystem>
 #include <string>
 #include <algorithm>
@@ -148,14 +147,21 @@ int main(int argc, char* argv[]) {
     }
 
     // Override current path
-    fs::path path = args.currentPath;
-    if (!path.is_absolute()) {
-        path = fs::current_path() / path;
+    fs::path currentPath = args.currentPath;
+    if (!currentPath.is_absolute()) {
+        currentPath = fs::current_path() / currentPath;
     }
-    fs::current_path(path);
+    fs::current_path(currentPath);
 
     // Override env
-    std::unordered_map<std::string, std::string> env = Parser::ParseDotEnvFile(path / args.dotEnvFile);
+    std::unordered_map<std::string, std::string> env;
+    fs::path dotEnvFile = currentPath / args.dotEnvFile;
+    try {
+        Parser::ParseDotEnvFile(dotEnvFile, env);
+    } catch (const std::exception& e) {
+        Console::Info("Could not parse .env file " + dotEnvFile.string() + ": " + e.what());
+        return 1;
+    }
     for (auto& it : env) {
         PutEnv(it);
     }
@@ -163,10 +169,16 @@ int main(int argc, char* argv[]) {
     // Setup context
     std::vector<std::shared_ptr<Service>> services;
     std::vector<std::shared_ptr<Task>> tasks;
-    Parser::ParseEnvironmentYmlFile(path / args.environmentFile, env, services, tasks);
+    fs::path environmentFile = currentPath / args.environmentFile;
+    try {
+        Parser::ParseEnvironmentYmlFile(environmentFile, env, services, tasks);
+    } catch (const std::exception& e) {
+        Console::Info("Could not parse environment file " + environmentFile.string() + ": " + e.what());
+        return 1;
+    }
 
     std::shared_ptr<ApplicationContext> context = std::make_shared<ApplicationContext>(
-        std::move(path),
+        std::move(currentPath),
         std::move(env),
         std::move(services),
         std::move(tasks)
