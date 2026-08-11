@@ -1,258 +1,187 @@
-#include "logging/console_logging.hpp"
-#include "menu/menu.hpp"
-#include "processes/processes.hpp"
-#include "parsing/parsing.hpp"
-#include "util/util.hpp"
-#include "tasks/tasks.hpp"
-#include "parsing/env_parser.hpp"
-#include "args/args.hpp"
-#include "action/action.hpp"
-#include "context/app_context.hpp"
 #include <optional>
-#include "stdlib.h"
-#include "conio.h"
 #include <iostream>
 #include <filesystem>
 #include <string>
 #include <algorithm>
 #include <vector>
 #include <memory>
-#include "../build/generated/version.h"
+#include <unordered_map>
+#include <exception>
+
+#include <generated/version.h>
+
+#include <Plan.hpp>
+#include <ApplicationContext.hpp>
+#include <Processes.hpp>
+
+#include <console/Console.hpp>
+#include <console/Color.hpp>
+#include <parser/EnvironmentParser.hpp>
+#include <parser/DotEnvParser.hpp>
+#include <args/Args.hpp>
+#include <task/Task.hpp>
+#include <action/Action.hpp>
+#include <action/RunTaskAction.hpp>
+#include <action/StartServiceAction.hpp>
+#include <action/StopServiceAction.hpp>
+#include <menu/MenuLoop.hpp>
 
 using namespace devkit;
+
 namespace fs = std::filesystem;
 
-static std::unordered_map<std::string, std::string> GetEnv(const fs::path& currentPath, const std::string& dotEnvFile) {
-    
-    try {
-        EnvParser envParser;
-        std::unordered_map<std::string, std::string> env = envParser.ParseFromFile((currentPath / dotEnvFile).string());
-        for (auto it = env.begin(); it != env.end(); it++) {
-            const auto& pair = *it;
-            std::string envString = pair.first + "=" + pair.second;
-            if (putenv(envString.c_str()) != 0) {
-                info("Warning: could not set env string: {}", envString);
-            }
+namespace {
+
+    void PutEnv(const std::pair<std::string, std::string>& envPair) {
+        std::string envString = envPair.first + "=" + envPair.second;
+        if (putenv(envString.c_str()) != 0) {
+            Console::Info("Warning: could not set env string: {}", envString);
         }
-        return env;
-    } catch (const std::exception& e) {
-        info("Could not parse .env file: {}", e.what());
-        return std::unordered_map<std::string, std::string>();
     }
-}
 
-static void ParseEnvironment(
-    const fs::path& currentPath, 
-    const std::string& environmentFile,
-    const std::unordered_map<std::string, std::string>& env,
-    std::vector<std::shared_ptr<Service>>& outServices,
-    std::vector<std::shared_ptr<Task>>& outTasks) {
-
-    try {
-        ParseServicesYml(currentPath / environmentFile, env, outServices, outTasks);
-    } catch (const std::exception& e) {
-        info("Could not parse services: {}", e.what());
-    }
-}
-
-static void StartAllServices(std::shared_ptr<AppContext> ctx) {
-    PipelineContext pipeline(ctx);
-    for (auto& service : ctx->GetServices()) {
-        pipeline.AddAction(std::make_shared<StartServiceAction>(service));
-    }
-    pipeline.Run();
-}
-
-static void StopAllServices(std::shared_ptr<AppContext> ctx) {
-    PipelineContext pipeline(ctx);
-    for (auto& service : ctx->GetServices()) {
-        pipeline.AddAction(std::make_shared<StopServiceAction>(service));
-    }
-    pipeline.Run();
-}
-
-static constexpr char ENTER = '\r';
-static constexpr char ESCAPE = 27;
-
-static inline bool IsReturn(const char c) {
-    return c == ENTER || c == ESCAPE;
-}
-
-static void RunUserMenu(std::shared_ptr<AppContext> context) {
-    while (true) {
-        auto activeProcesses = GetActiveProcesses();
-        std::vector<MenuItem> menu;
-        if (context->GetServices().size() > 1) {
-            menu.push_back(MenuItem("Start All", "Start All Services", RegisterStartAllServicesAction));
-            menu.push_back(MenuItem("Stop All", "Stop All Services", RegisterStopAllServicesAction));
-        }
-        for (auto& service : context->GetServices()) {
-            auto status = service->Status(activeProcesses);
-            const std::string& serviceName = service->definition.name;
-            if (status == ServiceStatus::UP) {
-                menu.push_back(MenuItem(
-                    std::format("{} {}", serviceName, color::green("on")), 
-                    std::format("Stop {}", serviceName), 
-                    [&](AppContext& ctx, PipelineContext& pipeline) {
-                        RegisterStopServiceAction(ctx, pipeline, service);
-                    }));
-            } else if (status == ServiceStatus::DOWN) {
-                menu.push_back(MenuItem(
-                    std::format("{} {}", serviceName, color::gray("off")),
-                    std::format("Start {}", serviceName),
-                    [&](AppContext& ctx, PipelineContext& pipeline) {
-                        RegisterStartServiceAction(ctx, pipeline, service);
-                    }
-                ));
-            } else {
-                menu.push_back(MenuItem(
-                    serviceName,
-                    std::format("Run {}", serviceName),
-                    [&](AppContext& ctx, PipelineContext& pipeline) {
-                        RegisterStartServiceAction(ctx, pipeline, service);
-                    }
-                ));
-            }
-        }
-        for (auto& task : context->GetTasks()) {
-            if (task->IsHidden()) {
-                continue;
-            }
-            menu.push_back(MenuItem(
-                task->GetName(),
-                task->GetName(),
-                [&](AppContext& ctx, PipelineContext& pipeline) {
-                    RegisterRunTaskAction(ctx, pipeline, task);
-                }
-            ));
-        }
-        
-        if (devkit::ShowMenu(menu, context)) {
-            while (!IsReturn(_getch())) {
-
-            }
-        }
-        ClearScreen();
-    }
-}
-
-static void ExecuteCommands(std::shared_ptr<AppContext> ctx, const Args& args) {
-    if (args.menu) {
-        RunUserMenu(ctx);
-    } else if (args.listCommand) {
-        if (!ctx->GetServices().empty()) {
-            info("-- Services --");
-            for (auto& service : ctx->GetServices()) {
-                info("{}", service->definition.name);
-            }
-        }
-        if (!ctx->GetTasks().empty()) {
-            info("-- Tasks --");
-            for (auto& task : ctx->GetTasks()) {
-                if (task->IsHidden()) {
-                    continue;
-                }
-                info("{}", task->GetName());
-            }
-        }
-    } else if (args.printStatus) {
-        auto activeProcesses = GetActiveProcesses();
+    void StartAllServices(std::shared_ptr<ApplicationContext> ctx) {
+        Pipeline pipeline(ctx);
         for (auto& service : ctx->GetServices()) {
-            auto status = service->Status(activeProcesses);
-            const std::string& serviceName = service->definition.name;
-            if (status == ServiceStatus::UP) {
-                info("{} {}", serviceName, color::green("on"));
-            } else if (status == ServiceStatus::DOWN) {
-                info("{} {}", serviceName, color::gray("off"));
+            pipeline.Plan(std::make_shared<StartServiceAction>(service));
+        }
+        pipeline.Execute();
+    }
+
+    void StopAllServices(std::shared_ptr<ApplicationContext> ctx) {
+        Pipeline pipeline(ctx);
+        for (auto& service : ctx->GetServices()) {
+            pipeline.Plan(std::make_shared<StopServiceAction>(service));
+        }
+        pipeline.Execute();
+    }
+
+    void ExecuteCommands(std::shared_ptr<ApplicationContext> ctx, const Args& args) {
+        if (args.menu) {
+            Menu::RunLoop(ctx);
+        } else if (args.listCommand) {
+            if (!ctx->GetServices().empty()) {
+                Info("-- Services --");
+                for (auto& service : ctx->GetServices()) {
+                    Info("{}", service->definition.name);
+                }
+            }
+            if (!ctx->GetTasks().empty()) {
+                Info("-- Tasks --");
+                for (auto& task : ctx->GetTasks()) {
+                    if (task->IsHidden()) {
+                        continue;
+                    }
+                    Info("{}", task->GetName());
+                }
+            }
+        } else if (args.printStatus) {
+            auto activeProcesses = GetActiveProcesses();
+            for (auto& service : ctx->GetServices()) {
+                auto status = service->Status(activeProcesses);
+                const std::string& serviceName = service->definition.name;
+                if (status == ServiceStatus::UP) {
+                    Console::Info("{} {}", serviceName, Color::Green("on"));
+                } else if (status == ServiceStatus::DOWN) {
+                    Console::Info("{} {}", serviceName, Color::Gray("off"));
+                } else {
+                    Console::Info("{} {}", serviceName, "??");
+                }
+            }
+        } else if (args.upCommand) {
+            if (args.upServicesList.empty()) {
+                StartAllServices(ctx);
             } else {
-                info("{} {}", serviceName, "??");
-            }
-        }
-    } else if (args.upCommand) {
-        if (args.upServicesList.empty()) {
-            StartAllServices(ctx);
-        } else {
-            PipelineContext pipeline(ctx);
-            for (auto& name : args.upServicesList) {
-                auto service = ctx->GetService(name);
-                if (!service) {
-                    throw std::runtime_error("No such service: " + name);
+                Pipeline pipeline(ctx);
+                for (auto& name : args.upServicesList) {
+                    auto service = ctx->GetService(name);
+                    if (!service) {
+                        throw std::runtime_error("No such service: " + name);
+                    }
+                    Plan::PlanStartService(*ctx, pipeline, *service);
                 }
-                RegisterStartServiceAction(*ctx, pipeline, *service);
+                pipeline.Execute();
             }
-            pipeline.Run();
-        }
-    } else if (args.downCommand) {
-        if (args.downServicesList.empty()) {
-            StopAllServices(ctx);
-        } else {
-            PipelineContext pipeline(ctx);
-            for (auto& name : args.downServicesList) {
-                auto service = ctx->GetService(name);
-                if (!service) {
-                    throw std::runtime_error("No such service: " + name);
+        } else if (args.downCommand) {
+            if (args.downServicesList.empty()) {
+                StopAllServices(ctx);
+            } else {
+                Pipeline pipeline(ctx);
+                for (auto& name : args.downServicesList) {
+                    auto service = ctx->GetService(name);
+                    if (!service) {
+                        throw std::runtime_error("No such service: " + name);
+                    }
+                    Plan::PlanStopService(*ctx, pipeline, *service);
                 }
-                RegisterStopServiceAction(*ctx, pipeline, *service);
+                pipeline.Execute();
             }
-            pipeline.Run();
+        } else if (!args.runList.empty()) {
+            Pipeline pipeline(ctx);
+            for (const auto& taskName : args.runList) {
+                auto taskOpt = ctx->GetTask(taskName);
+                if (!taskOpt) {
+                    throw std::runtime_error("No such task: " + taskName);
+                }
+                std::shared_ptr<Task> task = *taskOpt;
+                if (task->IsHidden()) {
+                    throw std::runtime_error("Can not run hidden task: " + taskName);
+                }
+                Plan::PlanTask(*ctx, pipeline, task);
+            }
+            pipeline.Execute();
         }
-    } else {
-        PipelineContext pipeline(ctx);
-        for (const auto& taskName : args.runList) {
-            auto taskOpt = ctx->GetTask(taskName);
-            if (!taskOpt) {
-                throw std::runtime_error("No such task: " + taskName);
-            }
-            std::shared_ptr<Task> task = *taskOpt;
-            if (task->IsHidden()) {
-                throw std::runtime_error("Can not run hidden task: " + taskName);
-            }
-            RegisterRunTaskAction(*ctx, pipeline, task);
-        }
-        pipeline.Run();
     }
 }
 
 int main(int argc, char* argv[]) {
-    InitConsole();
-    Args args = GetArgs(argc, argv);
+    Console::Init();
+    Args args = Args::FromArgv(argc, argv);
     if (args.exitCode.has_value()) {
+        // Exit with error
         return *args.exitCode;
     }
 
+    // Print version
     if (args.versionCommand) {
-        info(Version::GetVersion());
+        Console::Info(Version::GetVersion());
         return 0;
     }
 
+    // Override current path
     fs::path path = args.currentPath;
     if (!path.is_absolute()) {
         path = fs::current_path() / path;
     }
     fs::current_path(path);
 
-    std::unordered_map<std::string, std::string> env = GetEnv(path, args.dotEnvFile);
+    // Override env
+    std::unordered_map<std::string, std::string> env = Parser::ParseDotEnvFile(path / args.dotEnvFile);
+    for (auto& it : env) {
+        PutEnv(it);
+    }
 
+    // Setup context
     std::vector<std::shared_ptr<Service>> services;
     std::vector<std::shared_ptr<Task>> tasks;
-    ParseEnvironment(path, args.environmentFile, env, services, tasks);
+    Parser::ParseEnvironmentYmlFile(path / args.environmentFile, env, services, tasks);
 
-    std::shared_ptr<AppContext> context = std::make_shared<AppContext>(
+    std::shared_ptr<ApplicationContext> context = std::make_shared<ApplicationContext>(
         std::move(path),
         std::move(env),
         std::move(services),
         std::move(tasks)
     );
 
+    // Run
     if (args.HasSpecificCommands()) {
         try {
             ExecuteCommands(context, args);
         } catch (const std::exception& e) {
-            info("Error: {}", e.what());
+            Console::Info("Error: {}", e.what());
             return 1;
         }
     } else {
-        RunUserMenu(context);
+        Menu::RunLoop(context);
     }
 
     return 0;

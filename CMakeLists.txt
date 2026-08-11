@@ -3,8 +3,6 @@ set(CMAKE_CONFIGURATION_TYPES "Debug;Release" CACHE STRING "" FORCE)
 
 project(devkit LANGUAGES CXX)
 
-#add_compile_options("$<$<CXX_COMPILER_ID:MSVC>:/utf-8>")
-
 if(MSVC)
     add_compile_options(/utf-8)
 endif()
@@ -49,20 +47,29 @@ find_package(GTest REQUIRED)
 add_executable(
     cli 
     "src/main.cpp"
-    "src/menu/menu.cpp"
-    "src/processes/processes.cpp"
-    "src/logging/console_logging.cpp"
-    "src/util/util.cpp" "src/parsing/parsing.cpp"  "src/util/win_create_process.cpp"    "src/util/wstring.cpp" "src/parsing/env_parser.cpp"   "src/args/args.cpp" "src/context/pipeline_context.cpp" "src/action/action.cpp")
+    "src/menu/Menu.cpp"
+    "src/util/StringUtils.cpp"
+    "src/args/Args.cpp"
+    "src/parser/EnvironmentParser.cpp" 
+    "src/parser/DotEnvParser.cpp"
+)
+target_include_directories(cli PRIVATE 
+    "${CMAKE_SOURCE_DIR}/src" 
+    "${CMAKE_SOURCE_DIR}/libs" 
+    "${CMAKE_SOURCE_DIR}/build"
+)
 target_compile_features(cli PRIVATE cxx_std_20)
 target_link_libraries(cli
     pantor::inja
     yaml-cpp::yaml-cpp
 )
 
-# Добавление ресурсов для Windows
 if(WIN32)
     target_sources(cli PRIVATE 
         ${CMAKE_BINARY_DIR}/generated/version.rc
+        "src/platform/WindowsProcesses.cpp"
+        "src/platform/WindowsConsole.cpp"
+        "src/platform/WindowsShellRunner.cpp"
     )
 endif()
 
@@ -72,21 +79,6 @@ set_target_properties(cli PROPERTIES
     SOVERSION ${PROJECT_VERSION_MAJOR}
 )
 
-add_executable(
-    testrunner 
-    "tests/processes_test.cpp"
-    "src/menu/menu.cpp"
-    "src/processes/processes.cpp"
-    "src/logging/console_logging.cpp"
-    
- "src/util/util.cpp" "src/parsing/parsing.cpp"  "src/util/win_create_process.cpp"    "tests/strings_test.cpp" "src/util/wstring.cpp" "src/parsing/env_parser.cpp"    "src/args/args.cpp" "src/context/pipeline_context.cpp" "src/action/action.cpp")
-target_compile_features(testrunner PRIVATE cxx_std_20)
-target_link_libraries(testrunner PRIVATE
-    GTest::gtest
-    GTest::gtest_main
-    pantor::inja
-    yaml-cpp::yaml-cpp
-)
 add_executable("test-executable" "test_executable/main.cpp")
 target_compile_features("test-executable" PRIVATE cxx_std_20)
 

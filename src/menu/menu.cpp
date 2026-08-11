@@ -1,8 +1,3 @@
-#include "menu.hpp"
-#include "../logging/console_logging.hpp"
-#include "../util/util.hpp"
-#include "../context/app_context.hpp"
-
 #include <iostream>
 #include <unordered_map>
 #include <functional>
@@ -11,39 +6,41 @@
 #include <vector>
 #include <algorithm>
 #include <chrono>
-
 #include <string>
 #include <utility>
 
-#define NOMINMAX
-#include <windows.h>
+#include <stdlib.h>
+#include <conio.h>
 
-namespace devkit {
 
-    static std::pair<int /* width */, int /* height */> GetConsoleBounds() {
-        CONSOLE_SCREEN_BUFFER_INFO csbi;
-        if (GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &csbi)) {
-            return std::make_pair(
-                csbi.srWindow.Right - csbi.srWindow.Left + 1, 
-                csbi.srWindow.Bottom - csbi.srWindow.Top + 1
-            );
-        }
-        return std::make_pair(80, 25);
-    }
+#include <ApplicationContext.hpp>
+#include <Pipeline.hpp>
+#include <Plan.hpp>
+#include <console/Console.hpp>
+#include <console/Color.hpp>
+#include <menu/Menu.hpp>
+#include <menu/MenuItem.hpp>
 
+using namespace devkit;
+using namespace devkit::Menu;
+
+namespace devkit::Menu {
     struct MenuChoice {
         const std::string key;
         const std::string* title;
         const int width;
     };
+}
 
-    static void PrintMenuColumns(
-        std::vector<MenuChoice> menuChoices,
-        const std::string& prompt = "> ",
-        int minKeyWidth = 1,
-        int columnSpacing = 2) {
+namespace {
 
-        auto bounds = GetConsoleBounds();
+    void PrintMenuColumns(
+    std::vector<MenuChoice> menuChoices,
+    const std::string& prompt = "> ",
+    int minKeyWidth = 1,
+    int columnSpacing = 2) {
+
+        auto bounds = Console::GetConsoleBounds();
         int& consoleWidth = bounds.first;
         int& consoleHeight = bounds.second;
 
@@ -60,7 +57,7 @@ namespace devkit {
 
         int maxColumnsByWidth = std::max(1, consoleWidth / maxVisualWidth);
         int availableHeight = std::max(1, consoleHeight - 2);
-        int optimalRowsPerColumn = std::min(availableHeight, static_cast<int>(menuChoices.size()));
+        int optimalRowsPerColumn = std::min(availableHeight, std::max(1, static_cast<int>(menuChoices.size())));
         int numColumns = (menuChoices.size() + optimalRowsPerColumn - 1) / optimalRowsPerColumn;
 
         numColumns = std::min(numColumns, maxColumnsByWidth);
@@ -83,7 +80,7 @@ namespace devkit {
                     const auto& item = menuChoices[index];
 
                     std::string paddedKey = PadRight(item.key, maxKeyWidth);
-                    std::cout << color::cyan(paddedKey) << " " << *item.title;
+                    std::cout << Color::Cyan(paddedKey) << " " << *item.title;
 
                     int currentWidth = maxKeyWidth + 1 + item.width;
                     int padding = maxVisualWidth - columnSpacing - currentWidth;
@@ -100,8 +97,15 @@ namespace devkit {
         std::cout.flush();
     }
 
+}
+
+namespace devkit::Menu {
+
+    using namespace devkit;
+    using namespace devkit::Console;
+
     // Возвращает true, если что-то выбрано в меню
-    bool ShowMenu(const std::vector<MenuItem>& items, std::shared_ptr<AppContext> appContext) {
+    bool Show(const std::vector<MenuItem>& items, std::shared_ptr<ApplicationContext> appContext) {
 
         std::unordered_map<std::string, const MenuItem*> actions;
         size_t minWidth = 1;
@@ -126,7 +130,7 @@ namespace devkit {
 
         bool correctPipeline = true;
         bool anySelected = false;
-        PipelineContext pipeline(appContext);
+        Pipeline pipeline(appContext);
         std::string action;
         std::stringstream sstream(line);
         while (std::getline(sstream, action, ' ')) {
@@ -139,7 +143,7 @@ namespace devkit {
                 try {
                     item->pipelineAction(*appContext, pipeline);
                 } catch (const std::exception& e) {
-                    info("-- Incorrect pipeline: {}", e.what());
+                    Info("-- Incorrect pipeline: {}", e.what());
                     correctPipeline = false;
                 }
             } else {
@@ -149,9 +153,9 @@ namespace devkit {
         }
         if (correctPipeline) {
             try {
-                pipeline.Run();
+                pipeline.Execute();
             } catch (const std::exception& e) {
-                info("{}: {}", color::red("Error"), e.what());
+                Info("{}: {}", Color::Red("Error"), e.what());
                 return true;
             }
         }
