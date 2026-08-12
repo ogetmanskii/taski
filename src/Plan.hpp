@@ -77,13 +77,13 @@ namespace devkit::Plan {
     inline void PlanStartService(ApplicationContext& ctx, Pipeline& pipeline, std::shared_ptr<Service> service) {
         for (auto& dependsOnServiceName : GetAllDependsOnServices(ctx, *service)) {
             if (pipeline.InsertKey("ensure-healthy: " + dependsOnServiceName)) {
-                pipeline.PlanAction(std::make_shared<EnsureServiceIsHealthyAction>(dependsOnServiceName));
+                pipeline.PlanAction(std::make_shared<EnsureServiceIsHealthyAction>(dependsOnServiceName, true));
             }
         }
         pipeline.PlanAction(std::make_shared<StartServiceAction>(service));
         auto& serviceDefinition = (*service).definition;
         if (serviceDefinition.healthcheck) {
-            pipeline.PlanPostAction("ensure-healthy: " + serviceDefinition.name, std::make_shared<EnsureServiceIsHealthyAction>(serviceDefinition.name));
+            pipeline.PlanPostAction("ensure-healthy: " + serviceDefinition.name, std::make_shared<EnsureServiceIsHealthyAction>(serviceDefinition.name, false));
         }
     }
 
