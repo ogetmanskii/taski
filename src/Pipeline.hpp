@@ -28,8 +28,12 @@ namespace devkit {
             return keys.insert(key).second;
         }
 
-        void Plan(std::shared_ptr<Action> action) {
+        void PlanAction(std::shared_ptr<Action> action) {
             actions.push_back(action);
+        }
+
+        void PlanPostAction(const std::string& key, std::shared_ptr<Action> action) {
+            postActions.push_back(std::make_pair(key, action));
         }
 
         std::vector<ProcessInfo>& ActiveProcesses() {
@@ -45,6 +49,11 @@ namespace devkit {
         }
 
         void Execute() {
+            for (std::pair<std::string, std::shared_ptr<Action>> postAction : postActions) {
+                if (InsertKey(postAction.first)) {
+                    actions.push_back(postAction.second);
+                }
+            }
             if (actions.empty()) {
                 return;
             }
@@ -81,6 +90,7 @@ namespace devkit {
 
         std::shared_ptr<ApplicationContext> appContext;
         std::vector<std::shared_ptr<Action>> actions;
+        std::vector < std::pair<std::string /* key */, std::shared_ptr<Action>>> postActions;
         std::unordered_set<std::string> keys;
     };
 }

@@ -76,13 +76,19 @@ namespace devkit::Plan {
 
     inline void PlanStartService(ApplicationContext& ctx, Pipeline& pipeline, std::shared_ptr<Service> service) {
         for (auto& dependsOnServiceName : GetAllDependsOnServices(ctx, *service)) {
-            pipeline.Plan(std::make_shared<EnsureServiceIsHealthyAction>(dependsOnServiceName));
+            if (pipeline.InsertKey("ensure-healthy: " + dependsOnServiceName)) {
+                pipeline.PlanAction(std::make_shared<EnsureServiceIsHealthyAction>(dependsOnServiceName));
+            }
         }
-        pipeline.Plan(std::make_shared<StartServiceAction>(service));
+        pipeline.PlanAction(std::make_shared<StartServiceAction>(service));
+        auto& serviceDefinition = (*service).definition;
+        if (serviceDefinition.healthcheck) {
+            pipeline.PlanPostAction("ensure-healthy: " + serviceDefinition.name, std::make_shared<EnsureServiceIsHealthyAction>(serviceDefinition.name));
+        }
     }
 
     inline void PlanStopService(ApplicationContext& ctx, Pipeline& pipeline, std::shared_ptr<Service> service) {
-        pipeline.Plan(std::make_shared<StopServiceAction>(service));
+        pipeline.PlanAction(std::make_shared<StopServiceAction>(service));
     }
 
     inline void PlanTask(ApplicationContext& ctx, Pipeline& pipeline, std::shared_ptr<Task> task) {
@@ -98,12 +104,12 @@ namespace devkit::Plan {
         for (auto& dependsOnTaskName : GetAllDependsOnTasks(ctx, *task)) {
             auto& dependsOnTask = ctx.GetTask(dependsOnTaskName);
             if (pipeline.InsertKey("run-task: " + dependsOnTaskName)) {
-                pipeline.Plan(std::make_shared<RunTaskAction>(*dependsOnTask));
+                pipeline.PlanAction(std::make_shared<RunTaskAction>(*dependsOnTask));
             }
         }
-        // Run task iteself
+        // Run task itself
         pipeline.InsertKey("run-task: " + task->GetName());
-        pipeline.Plan(std::make_shared<RunTaskAction>(task));
+        pipeline.PlanAction(std::make_shared<RunTaskAction>(task));
         // Run after tasks
         for (auto& afterTaskName : task->GetAfter()) {
             auto& afterTask = ctx.GetTask(afterTaskName);
@@ -122,7 +128,7 @@ namespace devkit::Plan {
 
     inline void PlanStopAllServices(ApplicationContext& ctx, Pipeline& pipeline) {
         for (auto& service : ctx.GetServices()) {
-            pipeline.Plan(std::make_shared<StopServiceAction>(service));
+            pipeline.PlanAction(std::make_shared<StopServiceAction>(service));
         }
     }
 }

@@ -40,17 +40,13 @@ namespace {
 
     void StartAllServices(std::shared_ptr<ApplicationContext> ctx) {
         Pipeline pipeline(ctx);
-        for (auto& service : ctx->GetServices()) {
-            pipeline.Plan(std::make_shared<StartServiceAction>(service));
-        }
+        Plan::PlanStartAllServices(*ctx, pipeline);
         pipeline.Execute();
     }
 
     void StopAllServices(std::shared_ptr<ApplicationContext> ctx) {
         Pipeline pipeline(ctx);
-        for (auto& service : ctx->GetServices()) {
-            pipeline.Plan(std::make_shared<StopServiceAction>(service));
-        }
+        Plan::PlanStopAllServices(*ctx, pipeline);
         pipeline.Execute();
     }
 

@@ -70,8 +70,8 @@ namespace devkit::Menu {
                     task->GetName(),
                     task->GetName(),
                     [&](ApplicationContext& ctx, Pipeline& pipeline) {
-                    Plan::PlanTask(ctx, pipeline, task);
-                }
+                        Plan::PlanTask(ctx, pipeline, task);
+                    }
                 ));
             }
 
