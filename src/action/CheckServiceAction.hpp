@@ -7,9 +7,9 @@
 
 namespace devkit {
 
-    class EnsureServiceIsHealthyAction : public Action {
+    class CheckServiceAction : public Action {
     public:
-        EnsureServiceIsHealthyAction(std::string serviceName, bool startIfNotRunning)
+        CheckServiceAction(std::string serviceName, bool startIfNotRunning)
             : serviceName(std::move(serviceName)), 
             startIfNotRunning(startIfNotRunning) { }
 
@@ -19,8 +19,8 @@ namespace devkit {
                 throw std::runtime_error("No such service: " + serviceName);
             }
             auto& service = **serviceOpt;
-            auto status = service.Status(pipeline.RefreshActiveProcesses());
             if (startIfNotRunning) {
+                auto status = service.Status(pipeline.RefreshActiveProcesses());
                 if (status == ServiceStatus::DOWN) {
                     Info("-- {} is down. Start it", serviceName);
                     service.Start(pipeline.ActiveProcesses());
