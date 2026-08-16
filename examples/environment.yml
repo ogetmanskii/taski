@@ -58,11 +58,11 @@ services:
     healthcheck:
       # Команда для проверки. Наследует workingDirectory и environment от сервиса
       command: bin\pg_isready -h localhost -d postgres -U postgres
-      # Ожидаемые коды возврата команды
+      # Ожидаемые коды возврата команды. По умолчанию 0
       exitCodes: [0]
-      # Интвервал проверки в секундах
+      # Интервал между запусками command в секундах
       interval: 1
-      # Таймаут для проверок в секундах
+      # Таймаут для всего healthcheck в секундах
       timeout: 15
 
 tasks:
