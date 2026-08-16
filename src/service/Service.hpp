@@ -57,8 +57,11 @@ namespace devkit {
             if (!definition.healthcheck.has_value()) {
                 return true; // Если healthcheck не задан, считаем сервис здоровым
             }
-            Utf8Guard utf8(definition.utf8);
             HealthcheckDefinition healthcheck = *definition.healthcheck;
+            Utf8Guard utf8(healthcheck.utf8.value_or(definition.utf8));
+            std::string workingDirectory = healthcheck.workingDirectory.value_or(definition.workingDirectory);
+            std::unordered_map<std::string, std::string> env = healthcheck.environment.value_or(definition.environment);
+            std::string command = JoinShellCommands(healthcheck.command);
             auto startTime = std::chrono::steady_clock::now();
             while (true) {
                 auto currentTime = std::chrono::steady_clock::now();
@@ -67,9 +70,9 @@ namespace devkit {
                     return false;
                 }
                 RunResult result = ShellRunner::Run(
-                    JoinShellCommands(healthcheck.command),
-                    definition.workingDirectory,
-                    definition.environment,
+                    command,
+                    workingDirectory,
+                    env,
                     false,
                     healthcheck.timeout
                 );

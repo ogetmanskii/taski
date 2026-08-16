@@ -58,6 +58,13 @@ services:
     healthcheck:
       # Команда для проверки. Наследует workingDirectory и environment от сервиса
       command: bin\pg_isready -h localhost -d postgres -U postgres
+      # Рабочая директория. Если не укащана, наследуется от сервиса
+      workingDirectory: /dir
+      # Переменные окружения. Если не указаны, наследуются от сервиса
+      environment:
+        PGPORT: 5432
+      # Режим UTF-8. Если не указан, наследуется от сервиса
+      utf8: false
       # Ожидаемые коды возврата команды. По умолчанию 0
       exitCodes: [0]
       # Интервал между запусками command в секундах

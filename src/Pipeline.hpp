@@ -75,7 +75,7 @@ namespace devkit {
                 try {
                     action->Run(*appContext, *this);
                 } catch (const std::exception& e) {
-                    std::string message = std::format("-- {}: failed: {}", action->Description(), e.what());
+                    std::string message = std::format("-- {} - failed: {}", action->Description(), e.what());
                     Console::Info(message);
                     throw e;
                 }

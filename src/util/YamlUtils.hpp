@@ -10,11 +10,22 @@
 
 namespace devkit::YamlUtils {
 
-    template <typename T> std::optional<T> GetOptional(const YAML::Node& node) {
+    template <typename T> std::optional<T> GetOptionalScalar(const YAML::Node& node) {
         if (!node || !node.IsScalar()) {
             return std::nullopt;
         }
         return node.as<T>();
+    }
+
+    template <typename K, typename V> std::optional<std::unordered_map<K, V>> GetOptionalMap(const YAML::Node& node) {
+        if (!node || !node.IsMap()) {
+            return std::nullopt;
+        }
+        std::unordered_map<K, V> map;
+        for (auto i = node.begin(); i != node.end(); i++) {
+            map[i->first.as<K>()] = i->second.as<V>();
+        }
+        return map;
     }
 
     template <typename T> std::vector<T> GetList(const YAML::Node& node) {
@@ -39,10 +50,7 @@ namespace devkit::YamlUtils {
         return node.as<bool>();
     }
 
-    inline std::unordered_map<std::string, std::string> GetMap(
-        const YAML::Node& node,
-        const std::unordered_map<std::string, std::string>& env) {
-
+    inline std::unordered_map<std::string, std::string> GetMap(const YAML::Node& node) {
         std::unordered_map<std::string, std::string> map;
         if (!node || !node.IsMap()) {
             return map;
