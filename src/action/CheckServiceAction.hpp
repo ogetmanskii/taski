@@ -9,9 +9,9 @@ namespace devkit {
 
     class CheckServiceAction : public Action {
     public:
-        CheckServiceAction(std::string serviceName, bool startIfNotRunning)
+        CheckServiceAction(std::string serviceName, bool autoStart)
             : serviceName(std::move(serviceName)), 
-            startIfNotRunning(startIfNotRunning) { }
+            autoStart(autoStart) { }
 
         void Run(ApplicationContext& appCtx, Pipeline& pipeline) override {
             auto& serviceOpt = appCtx.GetService(serviceName);
@@ -19,7 +19,7 @@ namespace devkit {
                 throw std::runtime_error("No such service: " + serviceName);
             }
             auto& service = **serviceOpt;
-            if (startIfNotRunning) {
+            if (autoStart) {
                 auto status = service.Status(pipeline.RefreshActiveProcesses());
                 if (status == ServiceStatus::DOWN) {
                     Info("-- {} is down. Start it", serviceName);
@@ -43,6 +43,6 @@ namespace devkit {
 
     private:
         std::string serviceName;
-        bool startIfNotRunning;
+        bool autoStart;
     };
 }
