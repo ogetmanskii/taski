@@ -37,11 +37,7 @@ namespace devkit::Processes {
     );
 
     inline void WaitForNoActiveProcess(const std::string& exePath, const std::string& argsPattern) {
-        if (argsPattern.empty()) {
-            Console::Info("-- Waiting for process to terminate: {}", exePath);
-        } else {
-            Console::Info("-- Waiting for process to terminate: {}\n   with args: {}", exePath, argsPattern);
-        }
+        Console::Info("-- Wait: {}", exePath);
         auto wExePath = StringUtils::StringToWString(exePath);
         auto wArgsPattern = StringUtils::StringToWString(argsPattern);
         while (Processes::ProcessExists(wExePath, wArgsPattern)) {
@@ -50,11 +46,7 @@ namespace devkit::Processes {
     }
 
     inline void WaitForActiveProcess(const std::string& exePath, const std::string& argsPattern) {
-        if (argsPattern.empty()) {
-            Console::Info("-- Waiting for process: {}", exePath);
-        } else {
-            Console::Info("-- Waiting for process: {}\n   with args: {}", exePath, argsPattern);
-        }
+        Console::Info("-- Wait: {}", exePath);
         auto wExePath = StringUtils::StringToWString(exePath);
         auto wArgsPattern = StringUtils::StringToWString(argsPattern);
         while (!Processes::ProcessExists(wExePath, wArgsPattern)) {

@@ -22,10 +22,8 @@ namespace devkit {
             if (autoStart) {
                 auto status = service.Status(pipeline.RefreshActiveProcesses());
                 if (status == ServiceStatus::DOWN) {
-                    Info("-- {} is down. Start it", serviceName);
+                    Info("-- Start {}", serviceName);
                     service.Start(pipeline.ActiveProcesses());
-                } else if (status == ServiceStatus::UNKNOWN) {
-                    Info("-- {} is in unknown state");
                 }
             }
             if (!service.WaitForHealthy()) {

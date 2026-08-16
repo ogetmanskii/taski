@@ -67,10 +67,10 @@ namespace devkit {
             int i = 1;
             for (auto& action : actions) {
                 if (action->Counting()) {
-                    Console::Info("\n-- [{}/{}] {}", i, total, action->Description());
+                    Console::Info("-- [{}/{}] {}", i, total, action->Description());
                     i++;
                 } else {
-                    Console::Info("\n-- {}", action->Description());
+                    Console::Info("-- {}", action->Description());
                 }
                 try {
                     action->Run(*appContext, *this);
@@ -82,7 +82,7 @@ namespace devkit {
             }
             auto pipelineEnd = std::chrono::high_resolution_clock::now();
             auto totalMs = std::chrono::duration_cast<std::chrono::milliseconds>(pipelineEnd - pipelineStart).count();
-            Console::Info("\n-- {}: completed in {}", Color::Green("OK"), DurationFormatter::Format(totalMs));
+            Console::Info("-- {}: completed in {}", Color::Green("OK"), DurationFormatter::Format(totalMs));
         }
 
     private:

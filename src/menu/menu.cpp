@@ -93,7 +93,7 @@ namespace {
             std::cout << '\n';
         }
 
-        std::cout << '\n' << prompt;
+        std::cout << prompt;
         std::cout.flush();
     }
 

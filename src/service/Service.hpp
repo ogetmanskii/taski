@@ -74,10 +74,7 @@ namespace devkit {
                     healthcheck.timeout
                 );
                 if (ShellRunner::IsValidExitCode(result, healthcheck.exitCodes)) {
-                    Info("-- {} is healthy", definition.name);
                     return true;
-                } else {
-                    Info("-- {} not healthy yet", definition.name);
                 }
                 std::this_thread::sleep_for(std::chrono::seconds(healthcheck.interval));
             }
@@ -129,7 +126,6 @@ namespace devkit {
                     definition.environment,
                     definition.detachAfterMessage.value()
                 );
-                Info("\n");
                 if (exitCode.has_value() && (*exitCode) != 0) {
                     throw std::runtime_error("Start command exited with code: " + std::to_string(*exitCode));
                 }
@@ -140,7 +136,6 @@ namespace devkit {
                     definition.environment,
                     definition.detachAfterSeconds.value()
                 );
-                Info("\n");
                 if (exitCode.has_value() && (*exitCode) != 0) {
                     throw std::runtime_error("Start command exited with code: " + std::to_string(*exitCode));
                 }
@@ -155,7 +150,6 @@ namespace devkit {
                     definition.environment,
                     true
                 );
-                Info("\n");
                 if (!result.exitCode) {
                     throw std::runtime_error("Start command failed with no exit code");
                 }

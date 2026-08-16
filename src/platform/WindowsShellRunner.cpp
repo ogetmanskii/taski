@@ -135,11 +135,6 @@ namespace devkit::ShellRunner {
 
         std::wstring envBlock = CreateEnvironmentBlock(environment);
 
-        Console::Info("-- Run: {}", command);
-        if (!wWorkingDir.empty()) {
-            std::wcout << L"   in: " << wWorkingDir << std::endl;
-        }
-
         DWORD creationFlags = CREATE_UNICODE_ENVIRONMENT;
         if (createNewProcessGroup) {
             creationFlags |= CREATE_NO_WINDOW | CREATE_NEW_PROCESS_GROUP;
@@ -408,7 +403,7 @@ namespace devkit::ShellRunner {
 
             // Читаем оставшийся вывод
             if (messageFound || processEnded) {
-                std::this_thread::sleep_for(std::chrono::milliseconds(200));
+                std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
                 DWORD bytesAvailable = 0;
                 while (PeekNamedPipe(hStdOutRead, NULL, 0, NULL, &bytesAvailable, NULL) && bytesAvailable > 0) {
@@ -440,7 +435,7 @@ namespace devkit::ShellRunner {
         }
 
         // Даем потоку время для завершения чтения оставшихся данных
-        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+        std::this_thread::sleep_for(std::chrono::milliseconds(200));
 
         shouldStop = true;
         if (outputThread.joinable()) {
