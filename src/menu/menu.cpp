@@ -35,64 +35,119 @@ namespace devkit::Menu {
 namespace {
 
     void PrintMenuColumns(
-    std::vector<MenuChoice> menuChoices,
-    const std::string& prompt = "> ",
-    int minKeyWidth = 1,
-    int columnSpacing = 2) {
+        std::vector<MenuChoice> menuChoices,
+        const std::string& prompt = "> ",
+        int minKeyWidth = 1,
+        int columnSpacing = 2) {
 
         auto bounds = Console::GetConsoleBounds();
         int& consoleWidth = bounds.first;
         int& consoleHeight = bounds.second;
 
-        // Находим максимальную длину ключа и максимальную длину элемента
         int maxKeyWidth = minKeyWidth;
-        int maxVisualWidth = 0;
         for (const auto& item : menuChoices) {
             maxKeyWidth = std::max(maxKeyWidth, static_cast<int>(item.key.length()));
-            int visualWidth = maxKeyWidth + 1 + item.width;
-            maxVisualWidth = std::max(maxVisualWidth, visualWidth);
         }
 
-        maxVisualWidth += columnSpacing;
-
-        int maxColumnsByWidth = std::max(1, consoleWidth / maxVisualWidth);
         int availableHeight = std::max(1, consoleHeight - 2);
-        int optimalRowsPerColumn = std::min(availableHeight, std::max(1, static_cast<int>(menuChoices.size())));
-        int numColumns = (menuChoices.size() + optimalRowsPerColumn - 1) / optimalRowsPerColumn;
 
-        numColumns = std::min(numColumns, maxColumnsByWidth);
+        auto getItemWidth = [&](const MenuChoice& item) -> int {
+            return maxKeyWidth + 1 + item.width;
+        };
 
-        // Если колонки не помещаются по ширине, пересчитываем количество строк
-        int numRows;
-        if (numColumns == maxColumnsByWidth && numColumns > 0) {
-            // Распределяем элементы равномерно по доступным колонкам
-            numRows = (menuChoices.size() + numColumns - 1) / numColumns;
-        } else {
-            numRows = optimalRowsPerColumn;
+        // Функция для проверки, помещается ли распределение в консоль
+        auto tryDistribution = [&](
+            int numColumns, 
+            std::vector<int>& columnWidths,
+            std::vector<int>& columnStartIndices
+        ) -> bool {
+
+            int numRows = (menuChoices.size() + numColumns - 1) / numColumns;
+            columnWidths.assign(numColumns, 0);
+            columnStartIndices.assign(numColumns + 1, 0);
+
+            // Вычисляем границы столбцов
+            for (int col = 0; col < numColumns; ++col) {
+                columnStartIndices[col] = col * numRows;
+                for (int row = 0; row < numRows; ++row) {
+                    int index = row + col * numRows;
+                    if (index < menuChoices.size()) {
+                        columnWidths[col] = std::max(columnWidths[col],
+                                                     getItemWidth(menuChoices[index]));
+                    }
+                }
+            }
+            columnStartIndices[numColumns] = menuChoices.size();
+
+            // Проверяем общую ширину
+            int totalWidth = 0;
+            for (int col = 0; col < numColumns; ++col) {
+                totalWidth += columnWidths[col];
+                if (col < numColumns - 1) {
+                    totalWidth += columnSpacing;
+                }
+            }
+
+            return totalWidth <= consoleWidth;
+        };
+
+        // Находим оптимальное количество столбцов
+        int optimalRowsPerColumn = std::min(
+            availableHeight, 
+            std::max(
+                1, 
+                static_cast<int>(menuChoices.size()))
+        );
+        int maxColumns = std::max(1ULL, (menuChoices.size() + optimalRowsPerColumn - 1) /
+                                  optimalRowsPerColumn);
+
+        std::vector<int> bestColumnWidths;
+        std::vector<int> bestColumnStartIndices;
+        int bestNumColumns = 1;
+
+        // Пробуем разные количества столбцов, начиная с максимального
+        for (int numColumns = maxColumns; numColumns >= 1; --numColumns) {
+            std::vector<int> columnWidths;
+            std::vector<int> columnStartIndices;
+
+            if (tryDistribution(numColumns, columnWidths, columnStartIndices)) {
+                bestNumColumns = numColumns;
+                bestColumnWidths = columnWidths;
+                bestColumnStartIndices = columnStartIndices;
+                break;
+            }
         }
+
+        // Если не нашли подходящее распределение, используем одну колонку
+        if (bestColumnWidths.empty()) {
+            bestNumColumns = 1;
+            tryDistribution(1, bestColumnWidths, bestColumnStartIndices);
+        }
+
+        int numRows = (menuChoices.size() + bestNumColumns - 1) / bestNumColumns;
 
         // Выводим меню
         for (int row = 0; row < numRows; ++row) {
-            for (int col = 0; col < numColumns; ++col) {
-                int index = row + col * numRows;
+            for (int col = 0; col < bestNumColumns; ++col) {
+                int index = row + bestColumnStartIndices[col];
 
-                if (index < menuChoices.size()) {
+                if (index < bestColumnStartIndices[col + 1] && index < menuChoices.size()) {
                     const auto& item = menuChoices[index];
 
                     std::string paddedKey = PadRight(item.key, maxKeyWidth);
                     std::cout << Color::Cyan(paddedKey) << " " << *item.title;
 
-                    int currentWidth = maxKeyWidth + 1 + item.width;
-                    int padding = maxVisualWidth - columnSpacing - currentWidth;
+                    int currentWidth = getItemWidth(item);
+                    int padding = bestColumnWidths[col] - currentWidth;
 
-                    if (col < numColumns - 1 && index + numRows < menuChoices.size()) {
+                    if (col < bestNumColumns - 1 &&
+                        row + bestColumnStartIndices[col + 1] < menuChoices.size()) {
                         std::cout << std::string(padding + columnSpacing, ' ');
                     }
                 }
             }
             std::cout << '\n';
         }
-
         std::cout << prompt;
         std::cout.flush();
     }
