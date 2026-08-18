@@ -3,6 +3,10 @@
 #include <string>
 #include <string_view>
 
+namespace {
+    bool noColor = false;
+}
+
 namespace devkit::Console::Color {
     // Базовые цвета текста
     constexpr std::string_view RED = "\033[31m";
@@ -28,7 +32,14 @@ namespace devkit::Console::Color {
     constexpr std::string_view BG_RED = "\033[41m";
     constexpr std::string_view BG_GREEN = "\033[42m";
 
+    inline void SetNoColorMode() {
+        noColor = true;
+    }
+
     inline std::string Colored(const std::string& text, const std::string_view& colorCode) {
+        if (noColor) {
+            return text;
+        }
         return std::string(colorCode) + text + std::string(RESET);
     }
 

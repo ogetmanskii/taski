@@ -21,6 +21,7 @@ namespace devkit {
         app.add_option("--dir,-d", args.currentPath, "Set current working directory")->check(CLI::ExistingDirectory);
         app.add_option("--file,-f", args.environmentFile, "Set file name instead of environment.yml")->check(CLI::ExistingFile);
         app.add_option("--env,-e", args.dotEnvFile, "Set dot env file instead of .env")->check(CLI::ExistingFile);
+        app.add_flag("--no-color,--nc", args.noColor, "No color mode");
         app.add_flag("--version,-v", args.versionCommand, "Show version");
         
         auto* listCmd = app.add_subcommand("list", "List services and tasks");

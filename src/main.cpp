@@ -136,6 +136,10 @@ int main(int argc, char* argv[]) {
         return *args.exitCode;
     }
 
+    if (args.noColor) {
+        Console::Color::SetNoColorMode();
+    }
+
     // Print version
     if (args.versionCommand) {
         Console::Info(Version::GetVersion());

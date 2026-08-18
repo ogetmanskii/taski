@@ -10,6 +10,7 @@ namespace devkit {
         std::string currentPath;
         std::string environmentFile;
         std::string dotEnvFile;
+        bool noColor = false;
 
         bool listCommand = false;
 

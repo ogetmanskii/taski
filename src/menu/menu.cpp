@@ -8,10 +8,8 @@
 #include <chrono>
 #include <string>
 #include <utility>
-
 #include <stdlib.h>
 #include <conio.h>
-
 
 #include <ApplicationContext.hpp>
 #include <Pipeline.hpp>
@@ -57,9 +55,9 @@ namespace {
 
         // Функция для проверки, помещается ли распределение в консоль
         auto tryDistribution = [&](
-            int numColumns, 
-            std::vector<int>& columnWidths,
-            std::vector<int>& columnStartIndices
+            int numColumns, // Какое количество столбцов проверяем
+            std::vector<int>& columnWidths, // columnWidths[column] == длина столбца
+            std::vector<int>& columnStartIndices // columnStartIndices[column] == menuChoices index, с которого начинается столбец
         ) -> bool {
 
             int numRows = (menuChoices.size() + numColumns - 1) / numColumns;
@@ -72,8 +70,7 @@ namespace {
                 for (int row = 0; row < numRows; ++row) {
                     int index = row + col * numRows;
                     if (index < menuChoices.size()) {
-                        columnWidths[col] = std::max(columnWidths[col],
-                                                     getItemWidth(menuChoices[index]));
+                        columnWidths[col] = std::max(columnWidths[col], getItemWidth(menuChoices[index]));
                     }
                 }
             }
@@ -92,21 +89,15 @@ namespace {
         };
 
         // Находим оптимальное количество столбцов
-        int optimalRowsPerColumn = std::min(
-            availableHeight, 
-            std::max(
-                1, 
-                static_cast<int>(menuChoices.size()))
-        );
-        int maxColumns = std::max(1ULL, (menuChoices.size() + optimalRowsPerColumn - 1) /
-                                  optimalRowsPerColumn);
+        int optimalRowsPerColumn = std::min(availableHeight, std::max(1, static_cast<int>(menuChoices.size())));
+        int maxColumns = std::max(1ULL, (menuChoices.size() + optimalRowsPerColumn - 1) / optimalRowsPerColumn);
 
         std::vector<int> bestColumnWidths;
         std::vector<int> bestColumnStartIndices;
         int bestNumColumns = 1;
 
         // Пробуем разные количества столбцов, начиная с максимального
-        for (int numColumns = maxColumns; numColumns >= 1; --numColumns) {
+        for (int numColumns = maxColumns; numColumns > 0; --numColumns) {
             std::vector<int> columnWidths;
             std::vector<int> columnStartIndices;
 
