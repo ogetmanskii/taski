@@ -127,8 +127,25 @@ namespace devkit::Plan {
     }
 
     inline void PlanStopAllServices(ApplicationContext& ctx, Pipeline& pipeline) {
-        for (auto& service : ctx.GetServices()) {
-            pipeline.PlanAction(std::make_shared<StopServiceAction>(service));
+        // Остановка всех сервисов - в порядке, обратном запуску всех, с учетом зависимостей
+        std::vector<std::shared_ptr<Action>> actions;
+        actions.reserve(ctx.GetServices().size());
+
+        for (auto& servicePtr : ctx.GetServices()) {
+            auto& service = *servicePtr;
+            for (auto& dependsOnServiceName : GetAllDependsOnServices(ctx, service)) {
+                std::optional<std::shared_ptr<Service>> dependsOnService = ctx.GetService(dependsOnServiceName);
+                if (dependsOnService && pipeline.InsertKey("stop: " + dependsOnServiceName)) {
+                    actions.push_back(std::make_shared<StopServiceAction>(*dependsOnService));
+                }
+            }
+            if (pipeline.InsertKey("stop: " + service.definition.name)) {
+                actions.push_back(std::make_shared<StopServiceAction>(servicePtr));
+            }
+        }
+
+        for (auto it = actions.rbegin(); it != actions.rend(); it++) {
+            pipeline.PlanAction(*it);
         }
     }
 }
