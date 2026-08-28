@@ -15,7 +15,7 @@
 #include <tlhelp32.h>
 #include <psapi.h>
 
-#include <Processes.hpp>
+#include <processes/Processes.hpp>
 #include <ShellRunner.hpp>
 #include <console/Console.hpp>
 #include <util/StringUtils.hpp>

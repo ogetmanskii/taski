@@ -23,6 +23,7 @@ tasks:
       - cmake-configure
     workingDirectory: build
     command: cmake --build . --config Release
+    after: open-in-explorer
   build-debug:
     utf8: false
     dependsOn: 
@@ -30,8 +31,9 @@ tasks:
       - cmake-configure
     workingDirectory: build
     command: cmake --build . --config Debug
-  # test:
-  #   utf8: false
-  #   dependsOn: build-release
-  #   workingDirectory: build/Release
-  #   command: testrunner.exe
+    after: open-in-explorer
+  open-in-explorer:
+    hidden: true
+    workingDirectory: build
+    command: explorer ReleaseZip
+    exitCodes: [0,1]

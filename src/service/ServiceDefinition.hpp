@@ -5,6 +5,7 @@
 #include <vector>
 #include <unordered_map>
 
+#include <processes/ProcessFilter.hpp>
 #include <service/HealthcheckDefinition.hpp>
 
 namespace devkit {
@@ -21,8 +22,7 @@ namespace devkit {
         std::optional<int> detachAfterSeconds;
         std::optional<std::string> detachAfterMessage;
 
-        std::optional<std::string> monitorProcess;
-        std::optional<std::string> monitorProcessArgsPattern;
+        std::optional<Processes::ProcessFilter> monitorProcessFilter;
 
         std::optional<HealthcheckDefinition> healthcheck;
     };

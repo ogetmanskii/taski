@@ -8,7 +8,8 @@
 #include <cctype>
 #include <winternl.h>
 
-#include <Processes.hpp>
+#include <processes/Processes.hpp>
+#include <processes/ProcessDescriptor.hpp>
 #include <util/PathUtils.hpp>
 #include <util/WildcardMatcher.hpp>
 
@@ -44,45 +45,81 @@ namespace devkit::Processes {
         return fullCmdLine.substr(startPos);
     }
 
-    static inline std::wstring GetProcessCommandLine(DWORD processId) {
-        std::wstring cmdLine;
+    static inline ProcessDescriptor GetExtendedProcessInfo(DWORD processId) {
+        typedef NTSTATUS(WINAPI* PNtQueryInformationProcess)(HANDLE, PROCESSINFOCLASS, PVOID, ULONG, PULONG);
+        static HMODULE ntdll = GetModuleHandleW(L"ntdll.dll");
+        
+        std::wstring executablePath;
+        std::wstring commandLineArgs;
+        std::wstring workingDirectory;
+
         HANDLE hProcess = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, processId);
+        if (!hProcess) {
+            return ProcessDescriptor(executablePath, commandLineArgs, workingDirectory);
+        }
 
-        if (hProcess) {
-            // Используем NtQueryInformationProcess для получения PEB
-            typedef NTSTATUS(WINAPI* PNtQueryInformationProcess)(
-                HANDLE, PROCESSINFOCLASS, PVOID, ULONG, PULONG);
+        wchar_t buffer[MAX_PATH];
+        DWORD size = MAX_PATH;
 
-            HMODULE ntdll = GetModuleHandleW(L"ntdll.dll");
-            if (ntdll) {
-                auto NtQueryInformationProcess =
-                    (PNtQueryInformationProcess) GetProcAddress(ntdll, "NtQueryInformationProcess");
+        // imagepath
+        if (QueryFullProcessImageNameW(hProcess, 0, buffer, &size)) {
+            executablePath = buffer;
+        }
 
-                if (NtQueryInformationProcess) {
-                    PROCESS_BASIC_INFORMATION pbi;
-                    if (NtQueryInformationProcess(hProcess, ProcessBasicInformation,
-                        &pbi, sizeof(pbi), nullptr) == 0) {
+        if (ntdll) {
+            auto NtQueryInformationProcess =
+                (PNtQueryInformationProcess) GetProcAddress(ntdll, "NtQueryInformationProcess");
 
-                        PEB peb;
-                        if (ReadProcessMemory(hProcess, pbi.PebBaseAddress, &peb, sizeof(peb), nullptr)) {
-                            RTL_USER_PROCESS_PARAMETERS params;
-                            if (ReadProcessMemory(hProcess, peb.ProcessParameters,
-                                &params, sizeof(params), nullptr)) {
+            if (NtQueryInformationProcess) {
+                PROCESS_BASIC_INFORMATION pbi;
+                if (NtQueryInformationProcess(hProcess, ProcessBasicInformation,
+                    &pbi, sizeof(pbi), nullptr) == 0) {
+                    PEB peb;
 
-                                std::vector<wchar_t> buffer(params.CommandLine.Length / sizeof(wchar_t) + 1);
-                                if (ReadProcessMemory(hProcess, params.CommandLine.Buffer,
-                                    buffer.data(), params.CommandLine.Length, nullptr)) {
-                                    cmdLine.assign(buffer.data(), params.CommandLine.Length / sizeof(wchar_t));
+                    // cmdLine
+                    if (ReadProcessMemory(hProcess, pbi.PebBaseAddress, &peb, sizeof(peb), nullptr)) {
+                        RTL_USER_PROCESS_PARAMETERS params;
+                        if (ReadProcessMemory(hProcess, peb.ProcessParameters,
+                            &params, sizeof(params), nullptr)) {
+
+                            std::vector<wchar_t> buffer(params.CommandLine.Length / sizeof(wchar_t) + 1);
+                            if (ReadProcessMemory(hProcess, params.CommandLine.Buffer,
+                                buffer.data(), params.CommandLine.Length, nullptr)) {
+                                commandLineArgs.assign(buffer.data(), params.CommandLine.Length / sizeof(wchar_t));
+                                commandLineArgs = ExtractArgs(commandLineArgs);
+                            }
+                        }
+                    }
+
+                    // currentDir
+                    SIZE_T bytesRead = 0;
+                    if (ReadProcessMemory(hProcess, pbi.PebBaseAddress, &peb, sizeof(peb), &bytesRead)) {
+                        BYTE* processParams = (BYTE*) peb.ProcessParameters;
+                        UNICODE_STRING currentDirPath;
+                        SIZE_T curDirOffset;
+#ifdef _WIN64
+                        curDirOffset = 0x38;
+#else
+                        curDirOffset = 0x24;
+#endif
+                        if (ReadProcessMemory(hProcess, processParams + curDirOffset,
+                            &currentDirPath, sizeof(UNICODE_STRING), &bytesRead)) {
+
+                            if (currentDirPath.Length > 0 && currentDirPath.Buffer) {
+                                std::vector<wchar_t> buffer(currentDirPath.Length / sizeof(wchar_t) + 1);
+                                if (ReadProcessMemory(hProcess, currentDirPath.Buffer,
+                                    buffer.data(), currentDirPath.Length, &bytesRead)) {
+                                    workingDirectory.assign(buffer.data(), currentDirPath.Length / sizeof(wchar_t));
                                 }
                             }
                         }
                     }
                 }
             }
-            CloseHandle(hProcess);
         }
+        CloseHandle(hProcess);
 
-        return cmdLine;
+        return ProcessDescriptor(executablePath, commandLineArgs, workingDirectory);
     }
 
     // Получение полного пути к исполняемому файлу процесса
@@ -91,23 +128,10 @@ namespace devkit::Processes {
         HANDLE hProcess = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, processId);
 
         if (hProcess) {
-            wchar_t buffer[MAX_PATH];
-            DWORD size = MAX_PATH;
-            if (QueryFullProcessImageNameW(hProcess, 0, buffer, &size)) {
-                path = buffer;
-            }
             CloseHandle(hProcess);
         }
 
         return path;
-    }
-
-    static ProcessInfo GetProcessInfo(DWORD processId) {
-        ProcessInfo info;
-        info.name = GetProcessImagePath(processId);
-        std::wstring fullCmdLine = GetProcessCommandLine(processId);
-        info.args = ExtractArgs(fullCmdLine);
-        return info;
     }
 
     static std::vector<DWORD> GetActiveProcessIds() {
@@ -140,115 +164,63 @@ namespace devkit::Processes {
         }
     }
 
-    // Проверка совпадения имени процесса (с нормализацией и поддержкой wildcard)
-    static bool IsProcessNameMatch(const std::wstring& actualPath, const std::wstring& searchPattern) {
-        std::wstring normalizedActual = NormalizePath(actualPath);
-        std::wstring normalizedPattern = NormalizePath(searchPattern);
-
-        // Извлекаем только имя файла из actualPath для сравнения
-        size_t lastSlash = normalizedActual.find_last_of(L'/');
-        std::wstring actualFileName = (lastSlash != std::wstring::npos) ?
-            normalizedActual.substr(lastSlash + 1) : normalizedActual;
-
-        // Если паттерн содержит '/', сравниваем с полным путем
-        if (normalizedPattern.find(L'/') != std::wstring::npos) {
-            return MatchWildcard(normalizedActual, normalizedPattern);
-        }
-
-        // Иначе сравниваем только имена файлов
-        return MatchWildcard(actualFileName, normalizedPattern);
-    }
-
-    // Проверка совпадения аргументов с поддержкой wildcard
-    static bool IsArgsMatch(const std::wstring& actualArgs, const std::wstring& searchPattern) {
-        if (searchPattern.empty() && actualArgs.empty()) {
-            return true;
-        }
-
-        std::wstring normalizedArgs = NormalizePath(actualArgs);
-        std::wstring normalizedPattern = NormalizePath(searchPattern);
-
-        return MatchWildcard(normalizedArgs, normalizedPattern);
-    }
-
-    // Callback для поиска процесса по имени и аргументам
-    static std::function<bool(DWORD)> CreateProcessExistsCallback(
-        const std::wstring& processName,
-        const std::wstring& processArgs,
-        bool& found) {
+    static std::function<bool(DWORD)> CreateProcessExistsCallback(ProcessFilter& processFilter, bool& found) {
         found = false;
-
-        return [&found, processName, processArgs](DWORD processId) -> bool {
-            ProcessInfo info = GetProcessInfo(processId);
-
-            if (IsProcessNameMatch(info.name, processName) &&
-                IsArgsMatch(info.args, processArgs)) {
+        return [&found, &processFilter](DWORD processId) -> bool {
+            ProcessDescriptor d = GetExtendedProcessInfo(processId);
+            if (processFilter.Matches(d)) {
                 found = true;
-                return false;  // Прекращаем обход
+                return false; // Stop
             }
-
-            return true;  // Продолжаем обход
+            return true;
         };
     }
 
-    // Callback для терминации процессов по имени и аргументам
-    static std::function<bool(DWORD)> CreateTerminateProcessCallback(
-        const std::wstring& processName,
-        const std::wstring& processArgs) {
-        return [processName, processArgs](DWORD processId) -> bool {
-            ProcessInfo info = GetProcessInfo(processId);
-
-            if (IsProcessNameMatch(info.name, processName) &&
-                IsArgsMatch(info.args, processArgs)) {
+    static std::function<bool(DWORD)> CreateTerminateProcessCallback(ProcessFilter& processFilter) {
+        return [&processFilter](DWORD processId) -> bool {
+            ProcessDescriptor d = GetExtendedProcessInfo(processId);
+            if (processFilter.Matches(d)) {
                 HANDLE hProcess = OpenProcess(PROCESS_TERMINATE, FALSE, processId);
                 if (hProcess) {
                     TerminateProcess(hProcess, 0);
                     CloseHandle(hProcess);
                 }
             }
-
-            return true;  // Продолжаем обход для поиска других совпадений
-        };
-    }
-
-    // Callback для сборки процессов в vector
-    static std::function<bool(DWORD)> CreateCollectProcessCallback(std::vector<ProcessInfo>& vector) {
-        return [&vector](DWORD processId) -> bool {
-            ProcessInfo info = GetProcessInfo(processId);
-            vector.push_back(info);
             return true;
         };
     }
 
-    // Проверка существования процесса (удобная обертка)
-    bool ProcessExists(const std::wstring& processName, const std::wstring& processArgs) {
+    static std::function<bool(DWORD)> CreateCollectProcessCallback(std::vector<ProcessDescriptor>& vector) {
+        return [&vector](DWORD processId) -> bool {
+            ProcessDescriptor d = GetExtendedProcessInfo(processId);
+            vector.push_back(d);
+            return true;
+        };
+    }
+
+    bool ProcessExists(ProcessFilter& processFilter) {
         bool found = false;
-        auto callback = CreateProcessExistsCallback(processName, processArgs, found);
+        auto callback = CreateProcessExistsCallback(processFilter, found);
         ForEachActiveProcess(callback);
         return found;
     }
 
-    bool ProcessExists(
-        const std::vector<ProcessInfo>& processes,
-        const std::wstring& processName,
-        const std::wstring& processArgs) {
-
+    bool ProcessExists(std::vector<ProcessDescriptor>& processes, ProcessFilter& processFilter) {
         for (auto& process : processes) {
-            if (IsProcessNameMatch(process.name, processName) && IsArgsMatch(process.args, processArgs)) {
+            if (processFilter.Matches(process)) {
                 return true;
             }
         }
         return false;
     }
 
-    // Терминация процессов (удобная обертка)
-    void TerminateProcesses(const std::wstring& processName, const std::wstring& processArgs) {
-        auto callback = CreateTerminateProcessCallback(processName, processArgs);
+    void TerminateProcesses(ProcessFilter& processFilter) {
+        auto callback = CreateTerminateProcessCallback(processFilter);
         ForEachActiveProcess(callback);
     }
 
-    std::vector<ProcessInfo> GetActiveProcesses() {
-        std::vector<ProcessInfo> vector;
+    std::vector<ProcessDescriptor> GetActiveProcesses() {
+        std::vector<ProcessDescriptor> vector;
         auto callback = CreateCollectProcessCallback(vector);
         ForEachActiveProcess(callback);
         return vector;

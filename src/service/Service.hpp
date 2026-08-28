@@ -10,7 +10,9 @@
 #include <chrono>
 #include <thread>
 
-#include <Processes.hpp>
+#include <processes/Processes.hpp>
+#include <processes/ProcessFilter.hpp>
+#include <processes/ProcessDescriptor.hpp>
 #include <ShellRunner.hpp>
 #include <service/ServiceDefinition.hpp>
 #include <console/Utf8Guard.hpp>
@@ -22,6 +24,7 @@ namespace devkit {
     using namespace Console;
     using namespace StringUtils;
     using namespace ShellRunner;
+    using namespace Processes;
 
     enum ServiceStatus {
         UP,
@@ -31,7 +34,7 @@ namespace devkit {
 
     class Service {
     public:
-        const ServiceDefinition definition;
+        ServiceDefinition definition;
 
         Service() = delete;
 
@@ -39,13 +42,11 @@ namespace devkit {
             : definition(std::move(definition)) {
         }
 
-        ServiceStatus Status(const std::vector<Processes::ProcessInfo>& activeProcesses) const {
-            if (!definition.monitorProcess) {
+        ServiceStatus Status(std::vector<Processes::ProcessDescriptor>& activeProcesses) {
+            if (!definition.monitorProcessFilter) {
                 return ServiceStatus::UNKNOWN;
             }
-            std::string processPath = *definition.monitorProcess;
-            std::string processArgs = definition.monitorProcessArgsPattern.value_or("*");
-            if (Processes::ProcessExists(activeProcesses, StringToWString(processPath), StringToWString(processArgs))) {
+            if (Processes::ProcessExists(activeProcesses, *definition.monitorProcessFilter)) {
                 return ServiceStatus::UP;
             } else {
                 return ServiceStatus::DOWN;
@@ -83,12 +84,9 @@ namespace devkit {
             }
         }
 
-        void Stop(const std::vector<Processes::ProcessInfo>& activeProcesses) const {
+        void Stop(std::vector<Processes::ProcessDescriptor>& activeProcesses) {
             Utf8Guard utf8(definition.utf8);
-            if (definition.monitorProcess && !Processes::ProcessExists(
-                activeProcesses,
-                StringToWString(*definition.monitorProcess),
-                StringToWString(definition.monitorProcessArgsPattern.value_or("*")))) {
+            if (definition.monitorProcessFilter && !Processes::ProcessExists(activeProcesses, *definition.monitorProcessFilter)) {
                 return;
             }
             if (!definition.stopCommand.empty()) {
@@ -97,26 +95,20 @@ namespace devkit {
                     definition.workingDirectory,
                     definition.environment
                 );
-            } else if (definition.monitorProcess) {
-                Processes::TerminateProcesses(
-                    StringToWString(*definition.monitorProcess),
-                    StringToWString(definition.monitorProcessArgsPattern.value_or("*"))
-                );
+            } else if (definition.monitorProcessFilter) {
+                Processes::TerminateProcesses(*definition.monitorProcessFilter);
             } else {
                 Info("-- Can not stop {} - no stopCommand and no monitorProcess specified", definition.name);
                 return;
             }
-            if (definition.monitorProcess) {
-                Processes::WaitForNoActiveProcess(*definition.monitorProcess, definition.monitorProcessArgsPattern.value_or("*"));
+            if (definition.monitorProcessFilter) {
+                Processes::WaitForNoActiveProcess(*definition.monitorProcessFilter);
             }
         }
 
-        void Start(const std::vector<Processes::ProcessInfo>& activeProcesses) const {
+        void Start(std::vector<Processes::ProcessDescriptor>& activeProcesses) {
             Utf8Guard utf8(definition.utf8);
-            if (definition.monitorProcess.has_value() && Processes::ProcessExists(
-                activeProcesses,
-                StringToWString(definition.monitorProcess.value()),
-                StringToWString(definition.monitorProcessArgsPattern.value_or("*")))) {
+            if (definition.monitorProcessFilter && Processes::ProcessExists(activeProcesses, *definition.monitorProcessFilter)) {
                 return;
             }
             if (definition.startCommand.empty()) {
@@ -142,8 +134,8 @@ namespace devkit {
                 if (exitCode.has_value() && (*exitCode) != 0) {
                     throw std::runtime_error("Start command exited with code: " + std::to_string(*exitCode));
                 }
-                if (definition.monitorProcess.has_value()) {
-                    Processes::WaitForActiveProcess(*definition.monitorProcess, definition.monitorProcessArgsPattern.value_or("*"));
+                if (definition.monitorProcessFilter) {
+                    Processes::WaitForActiveProcess(*definition.monitorProcessFilter);
                     return;
                 }
             } else {

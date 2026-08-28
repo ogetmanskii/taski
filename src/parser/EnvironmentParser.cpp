@@ -5,6 +5,7 @@
 #include <stdexcept>
 #include <unordered_map>
 
+#include <processes/ProcessFilter.hpp>
 #include <util/YamlUtils.hpp>
 #include <util/StringUtils.hpp>
 #include <util/FileUtils.hpp>
@@ -19,6 +20,7 @@ namespace {
     using namespace devkit;
     using namespace devkit::YamlUtils;
     using namespace devkit::TemplateUtils;
+    using namespace devkit::Processes;
 
     std::optional<HealthcheckDefinition> ParseHealthcheck(const YAML::Node& healthcheckNode) {
         if (!healthcheckNode) {
@@ -55,16 +57,22 @@ namespace {
         auto monitorProcessNode = serviceNode["monitorProcess"];
         if (monitorProcessNode) {
             if (monitorProcessNode.IsScalar()) {
-                def.monitorProcess = monitorProcessNode.as<std::string>();
+                def.monitorProcessFilter = ProcessFilter().WithExecutablePattern(monitorProcessNode.as<std::string>());
             } else if (monitorProcessNode.IsMap()) {
+                auto processFilter = ProcessFilter();
                 auto executableNode = monitorProcessNode["executable"];
                 if (executableNode && executableNode.IsScalar()) {
-                    def.monitorProcess = executableNode.as<std::string>();
+                    processFilter.WithExecutablePattern(executableNode.as<std::string>());
                 }
                 auto argsNode = monitorProcessNode["args"];
                 if (argsNode && argsNode.IsScalar()) {
-                    def.monitorProcessArgsPattern = argsNode.as<std::string>();
+                    processFilter.WithCommandLineArgsPattern(argsNode.as<std::string>());
                 }
+                auto wdNode = monitorProcessNode["workingDirectory"];
+                if (wdNode && wdNode.IsScalar()) {
+                    processFilter.WithWorkingDirectoryPattern(wdNode.as<std::string>());
+                }
+                def.monitorProcessFilter = processFilter;
             }
         }
         return def;

@@ -11,7 +11,7 @@
 
 #include <Plan.hpp>
 #include <ApplicationContext.hpp>
-#include <Processes.hpp>
+#include <processes/Processes.hpp>
 
 #include <console/Console.hpp>
 #include <console/Color.hpp>

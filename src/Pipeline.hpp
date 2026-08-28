@@ -5,7 +5,8 @@
 #include <chrono>
 #include <optional>
 
-#include <Processes.hpp>
+#include <processes/Processes.hpp>
+#include <processes/ProcessDescriptor.hpp>
 #include <ApplicationContext.hpp>
 #include <console/Color.hpp>
 #include <console/DurationFormatter.hpp>
@@ -36,14 +37,14 @@ namespace devkit {
             postActions.push_back(std::make_pair(key, action));
         }
 
-        std::vector<ProcessInfo>& ActiveProcesses() {
+        std::vector<ProcessDescriptor>& ActiveProcesses() {
             if (!activeProcesses) {
                 activeProcesses = GetActiveProcesses();
             }
             return *activeProcesses;
         }
 
-        std::vector<ProcessInfo>& RefreshActiveProcesses() {
+        std::vector<ProcessDescriptor>& RefreshActiveProcesses() {
             activeProcesses = GetActiveProcesses();
             return *activeProcesses;
         }
@@ -86,7 +87,7 @@ namespace devkit {
         }
 
     private:
-        std::optional<std::vector<ProcessInfo>> activeProcesses;
+        std::optional<std::vector<ProcessDescriptor>> activeProcesses;
 
         std::shared_ptr<ApplicationContext> appContext;
         std::vector<std::shared_ptr<Action>> actions;
