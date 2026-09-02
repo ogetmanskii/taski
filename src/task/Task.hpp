@@ -22,7 +22,7 @@ namespace devkit {
             std::vector<std::string> dependsOn,
             std::vector<std::string> before,
             std::vector<std::string> after,
-            int timeout,
+            float timeout,
             std::vector<int> exitCodes,
             std::vector<std::string> commands,
             std::optional<std::filesystem::path> workingDirectory,
@@ -116,7 +116,7 @@ namespace devkit {
         const std::optional<std::unordered_map<std::string, std::string>> env;
 
         // timeout
-        const int timeout;
+        const float timeout;
 
         // exit-codes
         const std::vector<int> exitCodes;

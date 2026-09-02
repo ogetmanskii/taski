@@ -28,13 +28,13 @@ namespace devkit {
         std::optional<bool> createNewProcessGroup;
         
         // detach-after-seconds
-        std::optional<int> detachAfterSeconds;
+        std::optional<float> detachAfterSeconds;
         
         // detach-after-message
         std::optional<std::string> detachAfterMessage;
         
         // timeout
-        std::optional<int> timeout;
+        std::optional<float> timeout;
 
         // exit-codes
         std::vector<int> exitCodes;

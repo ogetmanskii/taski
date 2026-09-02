@@ -32,7 +32,7 @@ namespace devkit {
         }
 
         std::string Description() override {
-            return "Check " + serviceName;
+            return "Healthcheck " + serviceName;
         }
 
         bool Counting() {

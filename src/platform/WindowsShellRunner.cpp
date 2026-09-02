@@ -227,7 +227,7 @@ namespace {
         const std::string& workingDirectory,
         const std::unordered_map<std::string, std::string>& environment,
         bool createNewProcessGroup,
-        int timeoutSeconds
+        float timeoutSeconds
     ) {
         HANDLE hStdOutRead, hStdOutWrite;
         HANDLE hProcess = CreateChildProcess(command, workingDirectory, environment, createNewProcessGroup, hStdOutRead, hStdOutWrite);
@@ -283,7 +283,7 @@ namespace {
         const std::string& command,
         const std::string& workingDirectory,
         const std::unordered_map<std::string, std::string>& environment,
-        int detachAfterSeconds,
+        float detachAfterSeconds,
         bool createNewProcessGroup
     ) {
         if (detachAfterSeconds <= 0) {
@@ -361,7 +361,7 @@ namespace {
         const std::unordered_map<std::string, std::string>& environment,
         const std::string& detachAfterMessage,
         bool createNewProcessGroup,
-        int timeoutSeconds
+        float timeoutSeconds
     ) {
         HANDLE hStdOutRead, hStdOutWrite;
         HANDLE hProcess = CreateChildProcess(command, workingDirectory, environment, createNewProcessGroup, hStdOutRead, hStdOutWrite);

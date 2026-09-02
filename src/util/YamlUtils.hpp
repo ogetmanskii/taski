@@ -43,18 +43,11 @@ namespace devkit::YamlUtils {
         return list;
     }
 
-    inline bool GetBool(const YAML::Node& node, bool defaultValue) {
+    template <typename T> T GetOrDefault(const YAML::Node& node, T defaultValue) {
         if (!node || !node.IsScalar()) {
             return defaultValue;
         }
-        return node.as<bool>();
-    }
-
-    inline int GetInt(const YAML::Node& node, int defaultValue) {
-        if (!node || !node.IsScalar()) {
-            return defaultValue;
-        }
-        return node.as<int>();
+        return node.as<T>();
     }
 
     inline std::unordered_map<std::string, std::string> GetMap(const YAML::Node& node) {

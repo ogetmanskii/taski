@@ -35,8 +35,8 @@ namespace {
             .utf8 = GetOptionalScalar<bool>(healthcheckNode["utf8"]),
             .environment = GetOptionalMap<std::string, std::string>(healthcheckNode["env"]),
             .exitCodes = GetList<int>(healthcheckNode["exit-codes"]),
-            .interval = GetOptionalScalar<int>(healthcheckNode["interval"]).value_or(5),
-            .timeout = GetOptionalScalar<int>(healthcheckNode["timeout"]).value_or(30)
+            .interval = GetOptionalScalar<float>(healthcheckNode["interval"]).value_or(5),
+            .timeout = GetOptionalScalar<float>(healthcheckNode["timeout"]).value_or(30)
         };
     }
 
@@ -53,7 +53,7 @@ namespace {
                 .createNewProcessGroup = true,
                 .detachAfterSeconds = std::nullopt,
                 .detachAfterMessage = std::nullopt,
-                .timeout = -1,
+                .timeout = -1.0f,
                 .exitCodes = { 0 }
             };
         } else if (node.IsSequence()) {
@@ -65,7 +65,7 @@ namespace {
                 .createNewProcessGroup = true,
                 .detachAfterSeconds = std::nullopt,
                 .detachAfterMessage = std::nullopt,
-                .timeout = -1,
+                .timeout = -1.0f,
                 .exitCodes = { 0 }
             };
         } else if (node.IsMap()) {
@@ -75,9 +75,9 @@ namespace {
                 .environment = GetOptionalMap<std::string, std::string>(node["env"]),
                 .utf8 = GetOptionalScalar<bool>(node["utf8"]),
                 .createNewProcessGroup = GetOptionalScalar<bool>(node["create-new-process-group"]),
-                .detachAfterSeconds = GetOptionalScalar<int>(node["detach-after-seconds"]),
+                .detachAfterSeconds = GetOptionalScalar<float>(node["detach-after-seconds"]),
                 .detachAfterMessage = GetOptionalScalar<std::string>(node["detach-after-message"]),
-                .timeout = GetInt(node["timeout"], -1),
+                .timeout = GetOrDefault<float>(node["timeout"], -1.0f),
                 .exitCodes = GetList<int>(node["exit-codes"])
             };
         } else {
@@ -98,7 +98,7 @@ namespace {
                 .createNewProcessGroup = false,
                 .detachAfterSeconds = std::nullopt,
                 .detachAfterMessage = std::nullopt,
-                .timeout = -1,
+                .timeout = -1.0f,
                 .exitCodes = { 0 }
             };
         } else if (node.IsSequence()) {
@@ -110,7 +110,7 @@ namespace {
                 .createNewProcessGroup = false,
                 .detachAfterSeconds = std::nullopt,
                 .detachAfterMessage = std::nullopt,
-                .timeout = -1,
+                .timeout = -1.0f,
                 .exitCodes = { 0 }
             };
         } else if (node.IsMap()) {
@@ -120,9 +120,9 @@ namespace {
                 .environment = GetOptionalMap<std::string, std::string>(node["env"]),
                 .utf8 = GetOptionalScalar<bool>(node["utf8"]),
                 .createNewProcessGroup = GetOptionalScalar<bool>(node["create-new-process-group"]),
-                .detachAfterSeconds = GetOptionalScalar<int>(node["detach-after-seconds"]),
+                .detachAfterSeconds = GetOptionalScalar<float>(node["detach-after-seconds"]),
                 .detachAfterMessage = GetOptionalScalar<std::string>(node["detach-after-message"]),
-                .timeout = GetInt(node["timeout"], -1),
+                .timeout = GetOrDefault<float>(node["timeout"], -1.0f),
                 .exitCodes = GetList<int>(node["exit-codes"])
             };
         } else {
@@ -159,7 +159,7 @@ namespace {
         serviceDef.name = GetOptionalScalar<std::string>(serviceNode["name"]).value_or(tagName);
         serviceDef.workingDirectory = OrWorkingDirectory(serviceNode["work-dir"]);
         serviceDef.environment = GetMap(serviceNode["env"]);
-        serviceDef.utf8 = GetBool(serviceNode["utf8"], false);
+        serviceDef.utf8 = GetOrDefault<bool>(serviceNode["utf8"], false);
         serviceDef.dependsOn = GetList<std::string>(serviceNode["depends-on"]);
         serviceDef.startCommand = ParseStartCommand(serviceNode["start"], serviceDef);
         if (serviceNode["stop"]) {
@@ -197,9 +197,9 @@ namespace {
         std::vector<std::string> dependsOn = GetList<std::string>(node["depends-on"]);
         std::vector<std::string> before = GetList<std::string>(node["before"]);
         std::vector<std::string> after = GetList<std::string>(node["after"]);
-        bool hidden = GetBool(node["hidden"], false);
-        bool utf8 = GetBool(node["utf8"], false);
-        int timeout = GetOptionalScalar<int>(node["timeout"]).value_or(-1);
+        bool hidden = GetOrDefault<bool>(node["hidden"], false);
+        bool utf8 = GetOrDefault<bool>(node["utf8"], false);
+        float timeout = GetOptionalScalar<float>(node["timeout"]).value_or(-1);
         std::vector<int> exitCodes = GetList<int>(node["exit-codes"]);
 
         auto& commandNode = node["cmd"];

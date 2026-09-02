@@ -29,7 +29,7 @@ namespace devkit::ShellRunner {
 
         // Отсоединиться от процесса после N секунд.
         // 0 - отсоединиться сразу после запуска команды.
-        const std::optional<int> detachAfterSeconds;
+        const std::optional<float> detachAfterSeconds;
 
         // Отсоединиться от процесса после получения указанного сообщения в STDOUT.
         const std::optional<std::string> detachAfterMessage;
@@ -37,7 +37,7 @@ namespace devkit::ShellRunner {
         // Таймаут ожидания процесса.
         // Если указано -1, тогда таймаут отсутствует (ждем завершения команды бесконечно).
         // Игнорируется, если указано detachAfterSeconds.
-        const int timeoutSeconds;
+        const float timeoutSeconds;
     };
 
     struct RunResult {

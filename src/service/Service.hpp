@@ -75,15 +75,15 @@ namespace devkit {
             };
             while (true) {
                 auto currentTime = std::chrono::steady_clock::now();
-                auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(currentTime - startTime).count();
-                if (elapsed >= healthcheck.timeout) {
+                auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - startTime).count();
+                if (elapsed >= healthcheck.timeout * 1000) {
                     return false;
                 }
                 RunResult result = ShellRunner::Run(spec);
                 if (ShellRunner::IsValidExitCode(result, healthcheck.exitCodes)) {
                     return true;
                 }
-                std::this_thread::sleep_for(std::chrono::seconds(healthcheck.interval));
+                std::this_thread::sleep_for(std::chrono::milliseconds((int) (healthcheck.interval * 1000)));
             }
         }
 

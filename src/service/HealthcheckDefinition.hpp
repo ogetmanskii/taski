@@ -26,13 +26,13 @@ namespace devkit {
         // exit-codes
         std::vector<int> exitCodes;
 
-        // Интервал между вызовами команды
+        // Интервал в секундах между вызовами команды
         // interval
-        int interval;
+        float interval;
 
         // Таймаут в секундах, после которого, если сервис всё еще не healthy, то выбрасывать исключение
         // timeout
-        int timeout;
+        float timeout;
     };
 
 }
