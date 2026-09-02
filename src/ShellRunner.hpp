@@ -6,38 +6,54 @@
 
 namespace devkit::ShellRunner {
     
+    struct RunSpec {
+        
+        // Shell команда.
+        const std::string command;
+        
+        // Рабочая директория.
+        const std::string workingDirectory;
+        
+        // Дополнительные переменные окружения.
+        const std::unordered_map<std::string, std::string> environment;
+
+        // Вывод в UTF-8.
+        // false - выводить STDOUT процесса в кодировке консоли по умолчанию.
+        // true - преобразовать в UTF-8.
+        const bool utf8;
+
+        // Создавать ли новую группу процессов.
+        // false - будет дочерний процесс от текущего процесса.
+        // true - будет самостоятельный процесс.
+        const bool createNewProcessGroup;
+
+        // Отсоединиться от процесса после N секунд.
+        // 0 - отсоединиться сразу после запуска команды.
+        const std::optional<int> detachAfterSeconds;
+
+        // Отсоединиться от процесса после получения указанного сообщения в STDOUT.
+        const std::optional<std::string> detachAfterMessage;
+
+        // Таймаут ожидания процесса.
+        // Если указано -1, тогда таймаут отсутствует (ждем завершения команды бесконечно).
+        // Игнорируется, если указано detachAfterSeconds.
+        const int timeoutSeconds;
+    };
+
     struct RunResult {
+
+        // Код возврата команды (если была завершена).
         std::optional<int> exitCode;
+        
+        // Был ли таймаут ожидания команды.
         bool timedOut;
+
+        // Код внутренней ошибки, если не удалось создать процесс или получить его код возврата.
         std::optional<unsigned int> errorCode;
     };
 
-    // Запускает команду и ожидает ее завершения
-    // Пример команды: "sample-env\test-executable --sleep 3 --print Hello World"
-    //  в рабочей директории: "C:/Projects/sample-env"
-    RunResult Run(
-        const std::string& command, 
-        const std::string& workingDirectory, 
-        const std::unordered_map<std::string, std::string>& environment,
-        bool createNewProcessGroup = true,
-        int timeoutSeconds = -1
-    );
-
-    // Запускает команду и ожидает ее завершения. Отсоединяется после detachAfterSeconds
-    std::optional<int> Run(
-        const std::string& command, 
-        const std::string& workingDirectory, 
-        const std::unordered_map<std::string, std::string>& environment, 
-        int detachAfterSeconds
-    );
-
-    // Запускает команду и ожидает ее завершения. Отсоединяется после того, как дочерний процесс напишет строку, содержащую detachAfterMessage
-    std::optional<int> Run(
-        const std::string& command, 
-        const std::string& workingDirectory, 
-        const std::unordered_map<std::string, std::string>& environment, 
-        const std::string& detachAfterMessage
-    );
+    // Запуск команды по спецификации
+    RunResult Run(const RunSpec spec);
 
     inline bool IsValidExitCode(RunResult runResult, std::vector<int> expectedExitCodes) {
         if (!runResult.exitCode) {

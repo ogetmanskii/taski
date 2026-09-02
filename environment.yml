@@ -1,39 +1,33 @@
 tasks:
   clean:
-    utf8: false
-    command: rmdir /s /q build
-    exitCodes: [0,2]
+    cmd: rmdir /s /q build
+    exit-codes: [0,2]
   conan-install-debug:
-    utf8: false
-    command: conan install . --output-folder=build --build=missing -s build_type=Debug
+    cmd: conan install . --output-folder=build --build=missing -s build_type=Debug
   conan-install-release:
-    utf8: false
-    command: conan install . --output-folder=build --build=missing -s build_type=Release
+    cmd: conan install . --output-folder=build --build=missing -s build_type=Release
   cmake-configure:
-    utf8: false
-    dependsOn: 
+    depends-on: 
       - conan-install-debug
       - conan-install-release
-    workingDirectory: build
-    command: cmake .. -DCMAKE_TOOLCHAIN_FILE="conan_toolchain.cmake"
+    work-dir: build
+    cmd: cmake .. -DCMAKE_TOOLCHAIN_FILE="conan_toolchain.cmake"
   build-release:
-    utf8: false
-    dependsOn: 
+    depends-on: 
       - conan-install-release
       - cmake-configure
-    workingDirectory: build
-    command: cmake --build . --config Release
+    work-dir: build
+    cmd: cmake --build . --config Release
     after: open-in-explorer
   build-debug:
-    utf8: false
-    dependsOn: 
+    depends-on: 
       - conan-install-debug
       - cmake-configure
-    workingDirectory: build
-    command: cmake --build . --config Debug
+    work-dir: build
+    cmd: cmake --build . --config Debug
     after: open-in-explorer
   open-in-explorer:
     hidden: true
-    workingDirectory: build
-    command: explorer ReleaseZip
-    exitCodes: [0,1]
+    work-dir: build
+    cmd: explorer ReleaseZip
+    exit-codes: [0,1]

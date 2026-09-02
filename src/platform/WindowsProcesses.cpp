@@ -215,6 +215,7 @@ namespace devkit::Processes {
     }
 
     void TerminateProcesses(ProcessFilter& processFilter) {
+        processFilter.Validate();
         auto callback = CreateTerminateProcessCallback(processFilter);
         ForEachActiveProcess(callback);
     }

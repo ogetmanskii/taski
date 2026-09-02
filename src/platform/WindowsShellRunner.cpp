@@ -18,14 +18,15 @@
 #include <processes/Processes.hpp>
 #include <ShellRunner.hpp>
 #include <console/Console.hpp>
+#include <console/Utf8Guard.hpp>
 #include <util/StringUtils.hpp>
 
-namespace devkit::ShellRunner {
+namespace {
 
-    using namespace StringUtils;
+    using namespace devkit;
+    using namespace devkit::ShellRunner;
 
-    // Вспомогательная функция для создания строки окружения
-    static std::wstring CreateEnvironmentBlock(const std::unordered_map<std::string, std::string>& extraEnv) {
+    std::wstring CreateEnvironmentBlock(const std::unordered_map<std::string, std::string>& extraEnv) {
         // Получаем текущее окружение процесса
         LPWCH currentEnv = GetEnvironmentStringsW();
         if (!currentEnv) {
@@ -45,8 +46,8 @@ namespace devkit::ShellRunner {
 
         // Добавляем или заменяем переменные
         for (const auto& [key, value] : extraEnv) {
-            std::wstring wKey = StringToWString(key);
-            std::wstring wValue = StringToWString(value);
+            std::wstring wKey = StringUtils::StringToWString(key);
+            std::wstring wValue = StringUtils::StringToWString(value);
             std::wstring newVar = wKey + L"=" + wValue;
 
             // Проверяем, существует ли уже такая переменная
@@ -80,7 +81,7 @@ namespace devkit::ShellRunner {
         return envBlock;
     }
 
-    static HANDLE CreateChildProcess(
+    HANDLE CreateChildProcess(
       const std::string& command,
       const std::string& workingDirectory,
       const std::unordered_map<std::string, std::string>& environment,
@@ -169,13 +170,12 @@ namespace devkit::ShellRunner {
         return piProcInfo.hProcess;
     }
 
-    // Вспомогательная функция для чтения вывода процесса
-    static void ReadProcessOutput(HANDLE hStdOutRead, bool printToConsole = true) {
+    void ReadProcessOutput(HANDLE hStdOutRead, bool printToConsole = true) {
         CHAR chBuffer[4096];
         DWORD dwRead;
         BOOL bSuccess;
 
-        for (;;) {
+        while(true) {
             bSuccess = ReadFile(hStdOutRead, chBuffer, sizeof(chBuffer) - 1, &dwRead, NULL);
             if (!bSuccess || dwRead == 0) break;
 
@@ -187,7 +187,7 @@ namespace devkit::ShellRunner {
         }
     }
 
-    static void TerminateProcessTree(DWORD processId) {
+    void TerminateProcessTree(DWORD processId) {
         HANDLE hSnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
         PROCESSENTRY32 pe = { sizeof(PROCESSENTRY32) };
 
@@ -212,8 +212,17 @@ namespace devkit::ShellRunner {
         }
     }
 
+    inline bool FindAndErase(std::string& text, const std::string& searchText) {
+        int result = text.find(searchText);
+        // Удаляем начало строки, оставляем только окончание равное длине searchText + запас 8 символов
+        if (text.size() > (searchText.size() + 8)) {
+            text.erase(0, text.size() - searchText.size() - 8);
+        }
+        return result != std::string::npos;
+    }
+
     // Простой запуск с ожиданием завершения
-    RunResult Run(
+    RunResult RunCommand(
         const std::string& command,
         const std::string& workingDirectory,
         const std::unordered_map<std::string, std::string>& environment,
@@ -270,23 +279,28 @@ namespace devkit::ShellRunner {
     }
 
     // Запуск с отсоединением после указанного времени
-    std::optional<int> Run(
+    RunResult RunCommand(
         const std::string& command,
         const std::string& workingDirectory,
         const std::unordered_map<std::string, std::string>& environment,
-        int detachAfterSeconds
+        int detachAfterSeconds,
+        bool createNewProcessGroup
     ) {
         if (detachAfterSeconds <= 0) {
             HANDLE hStdOutRead, hStdOutWrite;
-            HANDLE hProcess = CreateChildProcess(command, workingDirectory, environment, true, hStdOutRead, hStdOutWrite);
+            HANDLE hProcess = CreateChildProcess(command, workingDirectory, environment, createNewProcessGroup, hStdOutRead, hStdOutWrite);
 
             CloseHandle(hStdOutRead);
             CloseHandle(hProcess);
-            return std::nullopt;
+            return RunResult {
+                .exitCode = std::nullopt,
+                .timedOut = false,
+                .errorCode = std::nullopt
+            };
         }
 
         HANDLE hStdOutRead, hStdOutWrite;
-        HANDLE hProcess = CreateChildProcess(command, workingDirectory, environment, true, hStdOutRead, hStdOutWrite);
+        HANDLE hProcess = CreateChildProcess(command, workingDirectory, environment, createNewProcessGroup, hStdOutRead, hStdOutWrite);
 
         std::atomic<bool> shouldStop { false };
         std::string fullOutput;
@@ -320,7 +334,11 @@ namespace devkit::ShellRunner {
             outputThread.join();
             CloseHandle(hStdOutRead);
             CloseHandle(hProcess);
-            return std::nullopt;
+            return RunResult {
+                .exitCode = std::nullopt,
+                .timedOut = false,
+                .errorCode = std::nullopt
+            };
         } else {
             shouldStop = true;
             outputThread.join();
@@ -328,32 +346,31 @@ namespace devkit::ShellRunner {
             GetExitCodeProcess(hProcess, &exitCode);
             CloseHandle(hStdOutRead);
             CloseHandle(hProcess);
-            return exitCode;
+            return RunResult {
+                .exitCode = exitCode,
+                .timedOut = false,
+                .errorCode = std::nullopt
+            };
         }
-    }
-
-    static inline bool FindAndErase(std::string& text, const std::string& searchText) {
-        int result = text.find(searchText);
-        // Удаляем начало строки, оставляем только окончание равное длине searchText + запас 8 символов
-        if (text.size() > (searchText.size() + 8)) {
-            text.erase(0, text.size() - searchText.size() - 8);
-        }
-        return result != std::string::npos;
     }
 
     // Запуск с отсоединением после получения определенного сообщения
-    std::optional<int> Run(
+    RunResult RunCommand(
         const std::string& command,
         const std::string& workingDirectory,
         const std::unordered_map<std::string, std::string>& environment,
-        const std::string& detachAfterMessage
+        const std::string& detachAfterMessage,
+        bool createNewProcessGroup,
+        int timeoutSeconds
     ) {
         HANDLE hStdOutRead, hStdOutWrite;
-        HANDLE hProcess = CreateChildProcess(command, workingDirectory, environment, true, hStdOutRead, hStdOutWrite);
+        HANDLE hProcess = CreateChildProcess(command, workingDirectory, environment, createNewProcessGroup, hStdOutRead, hStdOutWrite);
+        auto startedAt = std::chrono::high_resolution_clock::now();
 
         std::string accumulatedOutput;
         std::atomic<DWORD> processExitCode { 0 };
         std::atomic<bool> messageFound { false };
+        std::atomic<bool> timedOut { false };
         std::atomic<bool> shouldStop { false };
         std::atomic<bool> processEnded { false };
 
@@ -424,7 +441,14 @@ namespace devkit::ShellRunner {
         });
 
         // Ждем либо нахождения сообщения, либо завершения процесса
-        while (!messageFound && !processEnded) {
+        while (!messageFound && !processEnded && !timedOut) {
+            auto elapsedTime = std::chrono::high_resolution_clock::now() - startedAt;
+            if (timeoutSeconds >= 0 && std::chrono::duration_cast<std::chrono::seconds>(elapsedTime).count() >= timeoutSeconds) {
+                // timeout
+                timedOut = true;
+                TerminateProcessTree(GetProcessId(hProcess));
+                break;
+            }
             DWORD exitCode;
             if (GetExitCodeProcess(hProcess, &exitCode) && exitCode != STILL_ACTIVE) {
                 processEnded = true;
@@ -435,7 +459,7 @@ namespace devkit::ShellRunner {
         }
 
         // Даем потоку время для завершения чтения оставшихся данных
-        std::this_thread::sleep_for(std::chrono::milliseconds(200));
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
 
         shouldStop = true;
         if (outputThread.joinable()) {
@@ -445,9 +469,50 @@ namespace devkit::ShellRunner {
         CloseHandle(hProcess);
 
         if (processEnded) {
-            return processExitCode;
+            return RunResult {
+                .exitCode = processExitCode,
+                .timedOut = timedOut,
+                .errorCode = std::nullopt
+            };
         } else {
-            return std::nullopt;
+            return RunResult {
+                .exitCode = std::nullopt,
+                .timedOut = timedOut,
+                .errorCode = std::nullopt
+            };
+        }
+    }
+}
+
+namespace devkit::ShellRunner {
+
+    RunResult Run(const RunSpec spec) {
+        Console::Utf8Guard utf8(spec.utf8);
+        if (spec.detachAfterSeconds.has_value()) {
+            return RunCommand(
+                spec.command,
+                spec.workingDirectory,
+                spec.environment,
+                *spec.detachAfterSeconds,
+                spec.createNewProcessGroup
+            );
+        } else if (spec.detachAfterMessage.has_value()) {
+            return RunCommand(
+                spec.command,
+                spec.workingDirectory,
+                spec.environment,
+                *spec.detachAfterMessage,
+                spec.createNewProcessGroup,
+                spec.timeoutSeconds
+            );
+        } else {
+            return RunCommand(
+                spec.command,
+                spec.workingDirectory,
+                spec.environment,
+                spec.createNewProcessGroup,
+                spec.timeoutSeconds
+            );
         }
     }
 }

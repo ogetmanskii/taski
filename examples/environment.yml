@@ -5,88 +5,114 @@
 # {% set node="C:\\Programs\\node\\node.exe" %}
 # Все объявленные переменные будут доступны через подстановки в формате: ${pgsql_home}, ${nginx_home}, ${node}
 services:
-  serviceName:
+  service-name:
     # Название сервиса - опционально.
     # Если name не указан, тогда именем сервиса будет считаться тэг внутри секции services
-    name: "ServiceName"
+    name: ServiceName
     
-    # По умолчанию вывод кодируется в UTF-8,
-    # Но это можно отключить для некоторых сервисов или команд, и тогда их текст будет выводится в системной локали
-    utf8: false
+    # По умолчанию используется системная кодировка консоли.
+    # Можно включить перекодирование в UTF-8 (это полезно для сервисов, которые нативно работают в UTF-8)
+    utf8: true
 
     # Список зависимостей для сервиса.
     # Утилита будет запускать сервисы из списка dependsOn перед зависимым сервисом.
-    dependsOn:
+    depends-on:
       - anotherServiceName
       - oneMoreServiceName
     
     # Рабочая директория для сервиса
-    workingDirectory: "/dir"
+    work-dir: "/dir"
     
     # Переменные окружения для сервиса
-    environment:
+    env:
       PGPORT: 15433
     
-    # Shell команда для запуска сервиса
-    startCommand: bin\pg_ctl.exe start -D data -l postgres.txt
+    # Shell команда для запуска сервиса - краткий вариант
+    start: bin\pg_ctl start -D data -l postgres.txt
 
-    # Отсоединиться от процесса через указанное количество секунд.
-    # После отсоединения сервис считается запущенным.
-    detachAfterSeconds: 3
-    
-    # Отсоединиться от процесса после получения указанного сообщения в консоли
-    detachAfterMessage: Server started
-    # Если detachAfterSeconds и detachAfterMessage не указаны, тогда Утилита будет ждать полного завершения команды startCommand.
+    # Команда запуска - подробный вариант
+    start:
+      cmd: 
+        - bin\pg_ctl start -D data -l postgres.txt
+        - echo "Started!"
+      work-dir: /dir
+      env:
+        PGPORT: 15433
+      utf8: true
+      # Нужно ли отделять процесс в отдельную группу.
+      # false - не отделять, будет дочерний процесс от утилиты.
+      # true - отделить, будет самостоятельным процессом
+      create-new-process-group: true
+      # Отсоединиться от процесса через N секунд
+      detach-after-seconds: 3
+      # Отсоединиться от процесса после получения указанной фразы в STDOUT.
+      # Если detach-after-seconds и detach-after-message не указаны, тогда утилита будет ждать полного завершения команды start-команды.
+      detach-after-message: Server started
+      # Таймаут ожидания команды: N секунд
+      timeout: 5
+      # Какие коды возврата считать успешным выполнением
+      exit-codes: [0]
+
+    # Команда остановки - формат тот же, что и start.
+    # Если stop-команда не указана, тогда для остановки сервиса утилита будет посылать SIGTERM всем процессам,
+    #  подпадающим под фильтр processFilter.
+    stop: bin\pg_ctl stop -D data
+
+    stop:
+      cmd: 
+        - bin\pg_ctl stop -D data
+      work-dir: /dir
+      utf8: true
+      create-new-process-group: false
+      detach-after-seconds: 3
+      detach-after-message: Server stopped
+      timeout: 5
+      exit-codes: [0]
 
     # Процесс для мониторинга. Утилита определяет статус сервиса по наличию активного процесса в системе
-    monitorProcess: ${PGSQL_HOME}/bin/postgres.exe
+    process-filter: ${PGSQL_HOME}/bin/postgres.exe
 
-    # Второй способ указать monitorProcess - с уточнением аргументов командной строки искомого процесса и / или рабочей директории процесса.
+    # Второй способ указать processFilter - с уточнением аргументов командной строки искомого процесса и / или рабочей директории процесса.
     # В шаблонах args можно указывать * (означает 0, 1 или множество любых символов) и ? (означает один любой символ).
-    monitorProcess: 
+    process-filter: 
       executable: ${TEST_EXE}
       args: "*--flag Something *"
       workingDirectory: "${PGSQL_HOME}"
-    # Если не указан monitorProcess, тогда Утилита не может определить активность сервиса, 
+    # Если не указан processFilter, тогда Утилита не может определить активность сервиса, 
     # и, соответственно, такой сервис становится start-only сервисом (его можно только запустить, но не остановить).
-    
-    # Shell команда для остановки сервиса.
-    # Если stopCommand не указана, тогда для остановки сервиса Утилита будет посылать SIGTERM всем процессам,
-    #  подпадающим под фильтр monitorProcess.
-    stopCommand: bin\pg_ctl stop -D data
 
     # Проверка здоровья сервиса
     healthcheck:
-      # Команда для проверки. Наследует workingDirectory и environment от сервиса
-      command: bin\pg_isready -h localhost -d postgres -U postgres
+      # Команда для проверки.
+      cmd: bin\pg_isready -h localhost -d postgres -U postgres
       # Рабочая директория. Если не укащана, наследуется от сервиса
-      workingDirectory: /dir
+      work-dir: /dir
       # Переменные окружения. Если не указаны, наследуются от сервиса
-      environment:
+      env:
         PGPORT: 5432
       # Режим UTF-8. Если не указан, наследуется от сервиса
       utf8: false
       # Ожидаемые коды возврата команды. По умолчанию 0
-      exitCodes: [0]
+      exit-codes: [0]
       # Интервал между запусками command в секундах
       interval: 1
       # Таймаут для всего healthcheck в секундах
       timeout: 15
 
 tasks:
-  helloWorldTask:
+  hello-world-task:
     # Название задачи - опционально
     name: Print Hello World
     # По умолчанию вывод команд кодируется в UTF-8,
     # Но это можно отключить для некоторых сервисов или команд, и тогда их текст будет выводится в системной локали
     utf8: false
     # Рабочая директория для shell команды
-    workingDirectory: .
+    work-dir: .
     # Переменные окружения для команды
-    environment:
+    env:
       HELLO_WORLD: "Hello World"
     # Команда
-    command: echo %HELLO_WORLD%
+    cmd: echo %HELLO_WORLD%
     # Таймаут выполнения в секундах
     timeout: 3
 
@@ -94,35 +120,37 @@ tasks:
     # Задачи можно скрывать из списка задач.
     # Например, задачи, которые выполняются только в составе другой задачи.
     hidden: true
-    command: mkdir ".data"
+    cmd: mkdir ".data"
     # Можно перечислить коды возврата, которые нужно считать успешным выполнением задачи
-    exitCodes: [0, 1]
+    exit-codes: [0, 1]
+
   rm-file:
     hidden: true
-    workingDirectory: .data
-    command: del file.txt
-    exitCodes: [0, 1]
+    work-dir: .data
+    cmd: del file.txt
+    exit-codes: [0, 1]
+    
   write-file:
     name: "Write file"
-    workingDirectory: .data
+    work-dir: .data
     # Список задач, от которых зависит данная задача
     # Утилита будет выполнять указанные задачи перед зависимой задачей
-    dependsOn:
+    depends-on:
       - mkdir-data
     # Список задач, которые безусловно запускаются перед данной задачей (даже если уже были запущены ранее)
     before:
       - rm-file
-    command: echo "Hello World" > file.txt
+    cmd: echo "Hello World" > file.txt
     # Список задач, которые безусловно запускаются после данной задачи (даже если уже были запущены ранее)
     after:
-      - Lua Script
+      - another-task
 
   # В задаче можно задавать несколько команд.
   # Все команды одной задачи объединятся в &&-цепочку
   chain-task:
     name: Chain Write File
-    exitCodes: [0,1]
-    command:
+    exit-codes: [0,1]
+    cmd:
       - mkdir ".data"
       - del file.txt
       - echo Hello World >> file.txt

@@ -10,9 +10,9 @@
 #include <util/StringUtils.hpp>
 #include <util/FileUtils.hpp>
 #include <util/TemplateUtils.hpp>
+#include <task/Task.hpp>
 #include <service/Service.hpp>
 #include <service/ServiceDefinition.hpp>
-#include <task/ShellCommandTask.hpp>
 #include <parser/EnvironmentParser.hpp>
 
 namespace {
@@ -30,52 +30,146 @@ namespace {
             return std::nullopt;
         }
         return HealthcheckDefinition {
-            .command = GetShellCommandSequence(healthcheckNode["command"]),
-            .workingDirectory = GetOptionalScalar<std::string>(healthcheckNode["workingDirectory"]),
+            .command = GetShellCommandSequence(healthcheckNode["cmd"]),
+            .workingDirectory = GetOptionalScalar<std::string>(healthcheckNode["work-dir"]),
             .utf8 = GetOptionalScalar<bool>(healthcheckNode["utf8"]),
-            .environment = GetOptionalMap<std::string, std::string>(healthcheckNode["environment"]),
-            .exitCodes = GetList<int>(healthcheckNode["exitCodes"]),
+            .environment = GetOptionalMap<std::string, std::string>(healthcheckNode["env"]),
+            .exitCodes = GetList<int>(healthcheckNode["exit-codes"]),
             .interval = GetOptionalScalar<int>(healthcheckNode["interval"]).value_or(5),
             .timeout = GetOptionalScalar<int>(healthcheckNode["timeout"]).value_or(30)
         };
     }
 
-    ServiceDefinition ParseService(const std::string& tagName, const YAML::Node& serviceNode) {
-        auto def = devkit::ServiceDefinition {
-            .dependsOn = GetList<std::string>(serviceNode["dependsOn"]),
-            .workingDirectory = OrWorkingDirectory(serviceNode["workingDirectory"]),
-            .utf8 = GetBool(serviceNode["utf8"], true),
-            .environment = GetMap(serviceNode["environment"]),
-            .startCommand = GetShellCommandSequence(serviceNode["startCommand"]),
-            .stopCommand = GetShellCommandSequence(serviceNode["stopCommand"]),
-            .detachAfterSeconds = GetOptionalScalar<int>(serviceNode["detachAfterSeconds"]),
-            .detachAfterMessage = GetOptionalScalar<std::string>(serviceNode["detachAfterMessage"]),
-            .healthcheck = ParseHealthcheck(serviceNode["healthcheck"])
-        };
-        def.name = GetOptionalScalar<std::string>(serviceNode["name"]).value_or(tagName);
+    ServiceCommandDefinition ParseStartCommand(const YAML::Node& node, const ServiceDefinition& serviceDef) {
+        if (!node) {
+            throw std::runtime_error("Could not parse service " + serviceDef.name + ": no start command specified");
+        }
+        if (node.IsScalar()) {
+            return ServiceCommandDefinition {
+                .command = { node.as<std::string>() },
+                .workingDirectory = std::nullopt,
+                .environment = std::nullopt,
+                .utf8 = std::nullopt,
+                .createNewProcessGroup = true,
+                .detachAfterSeconds = std::nullopt,
+                .detachAfterMessage = std::nullopt,
+                .timeout = -1,
+                .exitCodes = { 0 }
+            };
+        } else if (node.IsSequence()) {
+            return ServiceCommandDefinition {
+                .command = GetShellCommandSequence(node),
+                .workingDirectory = std::nullopt,
+                .environment = std::nullopt,
+                .utf8 = std::nullopt,
+                .createNewProcessGroup = true,
+                .detachAfterSeconds = std::nullopt,
+                .detachAfterMessage = std::nullopt,
+                .timeout = -1,
+                .exitCodes = { 0 }
+            };
+        } else if (node.IsMap()) {
+            return ServiceCommandDefinition {
+                .command = GetShellCommandSequence(node["cmd"]),
+                .workingDirectory = GetOptionalScalar<std::string>(node["work-dir"]),
+                .environment = GetOptionalMap<std::string, std::string>(node["env"]),
+                .utf8 = GetOptionalScalar<bool>(node["utf8"]),
+                .createNewProcessGroup = GetOptionalScalar<bool>(node["create-new-process-group"]),
+                .detachAfterSeconds = GetOptionalScalar<int>(node["detach-after-seconds"]),
+                .detachAfterMessage = GetOptionalScalar<std::string>(node["detach-after-message"]),
+                .timeout = GetInt(node["timeout"], -1),
+                .exitCodes = GetList<int>(node["exit-codes"])
+            };
+        } else {
+            throw std::runtime_error("Could not parse start-command: unknown format");
+        }
+    }
 
-        auto monitorProcessNode = serviceNode["monitorProcess"];
-        if (monitorProcessNode) {
-            if (monitorProcessNode.IsScalar()) {
-                def.monitorProcessFilter = ProcessFilter().WithExecutablePattern(monitorProcessNode.as<std::string>());
-            } else if (monitorProcessNode.IsMap()) {
-                auto processFilter = ProcessFilter();
-                auto executableNode = monitorProcessNode["executable"];
-                if (executableNode && executableNode.IsScalar()) {
-                    processFilter.WithExecutablePattern(executableNode.as<std::string>());
-                }
-                auto argsNode = monitorProcessNode["args"];
-                if (argsNode && argsNode.IsScalar()) {
-                    processFilter.WithCommandLineArgsPattern(argsNode.as<std::string>());
-                }
-                auto wdNode = monitorProcessNode["workingDirectory"];
-                if (wdNode && wdNode.IsScalar()) {
-                    processFilter.WithWorkingDirectoryPattern(wdNode.as<std::string>());
-                }
-                def.monitorProcessFilter = processFilter;
+    ServiceCommandDefinition ParseStopCommand(const YAML::Node& node, const ServiceDefinition& serviceDef) {
+        if (!node) {
+            throw std::runtime_error("Could not parse service " + serviceDef.name + ": no stop command specified");
+        }
+        if (node.IsScalar()) {
+            return ServiceCommandDefinition {
+                .command = { node.as<std::string>() },
+                .workingDirectory = std::nullopt,
+                .environment = std::nullopt,
+                .utf8 = std::nullopt,
+                .createNewProcessGroup = false,
+                .detachAfterSeconds = std::nullopt,
+                .detachAfterMessage = std::nullopt,
+                .timeout = -1,
+                .exitCodes = { 0 }
+            };
+        } else if (node.IsSequence()) {
+            return ServiceCommandDefinition {
+                .command = GetShellCommandSequence(node),
+                .workingDirectory = std::nullopt,
+                .environment = std::nullopt,
+                .utf8 = std::nullopt,
+                .createNewProcessGroup = false,
+                .detachAfterSeconds = std::nullopt,
+                .detachAfterMessage = std::nullopt,
+                .timeout = -1,
+                .exitCodes = { 0 }
+            };
+        } else if (node.IsMap()) {
+            return ServiceCommandDefinition {
+                .command = GetShellCommandSequence(node["cmd"]),
+                .workingDirectory = GetOptionalScalar<std::string>(node["work-dir"]),
+                .environment = GetOptionalMap<std::string, std::string>(node["env"]),
+                .utf8 = GetOptionalScalar<bool>(node["utf8"]),
+                .createNewProcessGroup = GetOptionalScalar<bool>(node["create-new-process-group"]),
+                .detachAfterSeconds = GetOptionalScalar<int>(node["detach-after-seconds"]),
+                .detachAfterMessage = GetOptionalScalar<std::string>(node["detach-after-message"]),
+                .timeout = GetInt(node["timeout"], -1),
+                .exitCodes = GetList<int>(node["exit-codes"])
+            };
+        } else {
+            throw std::runtime_error("Could not parse stop-command: unknown format");
+        }
+    }
+
+    std::optional<ProcessFilter> ParseProcessFilter(const YAML::Node& node) {
+        if (!node) {
+            return std::nullopt;
+        }
+        ProcessFilter filter;
+        if (node.IsScalar()) {
+            filter.WithExecutablePattern(node.as<std::string>());
+        } else if (node.IsMap()) {
+            auto executableNode = node["exe"];
+            if (executableNode && executableNode.IsScalar()) {
+                filter.WithExecutablePattern(executableNode.as<std::string>());
+            }
+            auto argsNode = node["args"];
+            if (argsNode && argsNode.IsScalar()) {
+                filter.WithCommandLineArgsPattern(argsNode.as<std::string>());
+            }
+            auto wdNode = node["work-dir"];
+            if (wdNode && wdNode.IsScalar()) {
+                filter.WithWorkingDirectoryPattern(wdNode.as<std::string>());
             }
         }
-        return def;
+        return filter;
+    }
+
+    ServiceDefinition ParseService(const std::string& tagName, const YAML::Node& serviceNode) {
+        ServiceDefinition serviceDef;
+        serviceDef.name = GetOptionalScalar<std::string>(serviceNode["name"]).value_or(tagName);
+        serviceDef.workingDirectory = OrWorkingDirectory(serviceNode["work-dir"]);
+        serviceDef.environment = GetMap(serviceNode["env"]);
+        serviceDef.utf8 = GetBool(serviceNode["utf8"], false);
+        serviceDef.dependsOn = GetList<std::string>(serviceNode["depends-on"]);
+        serviceDef.startCommand = ParseStartCommand(serviceNode["start"], serviceDef);
+        if (serviceNode["stop"]) {
+            serviceDef.stopCommand = ParseStopCommand(serviceNode["stop"], serviceDef);
+        } else {
+            serviceDef.stopCommand = std::nullopt;
+        }
+        serviceDef.processFilter = ParseProcessFilter(serviceNode["process-filter"]);
+        serviceDef.healthcheck = ParseHealthcheck(serviceNode["healthcheck"]);
+        return serviceDef;
     }
 
     void ParseServices(
@@ -98,26 +192,25 @@ namespace {
     }
 
     std::shared_ptr<Task> ParseTask(const std::string& tag, const YAML::Node& node) {
-
         std::string name = GetOptionalScalar<std::string>(node["name"]).value_or(tag);
-        std::filesystem::path workingDirectory = OrWorkingDirectory(node["workingDirectory"]);
-        std::vector<std::string> dependsOn = GetList<std::string>(node["dependsOn"]);
+        std::filesystem::path workingDirectory = OrWorkingDirectory(node["work-dir"]);
+        std::vector<std::string> dependsOn = GetList<std::string>(node["depends-on"]);
         std::vector<std::string> before = GetList<std::string>(node["before"]);
         std::vector<std::string> after = GetList<std::string>(node["after"]);
         bool hidden = GetBool(node["hidden"], false);
-        bool utf8 = GetBool(node["utf8"], true);
+        bool utf8 = GetBool(node["utf8"], false);
         int timeout = GetOptionalScalar<int>(node["timeout"]).value_or(-1);
-        std::vector<int> exitCodes = GetList<int>(node["exitCodes"]);
+        std::vector<int> exitCodes = GetList<int>(node["exit-codes"]);
 
-        auto& commandNode = node["command"];
+        auto& commandNode = node["cmd"];
         if (!commandNode) {
             throw std::runtime_error("Could not parse task " + name + ": no command specified");
         }
         
         std::vector<std::string> commands = GetShellCommandSequence(commandNode);
-        std::unordered_map<std::string, std::string> taskEnv = GetMap(node["environment"]);
+        std::unordered_map<std::string, std::string> taskEnv = GetMap(node["env"]);
         
-        return std::make_shared<ShellCommandTask>(
+        return std::make_shared<Task>(
             std::move(name),
             hidden,
             utf8,

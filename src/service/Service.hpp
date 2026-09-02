@@ -15,7 +15,6 @@
 #include <processes/ProcessDescriptor.hpp>
 #include <ShellRunner.hpp>
 #include <service/ServiceDefinition.hpp>
-#include <console/Utf8Guard.hpp>
 #include <console/Console.hpp>
 #include <util/StringUtils.hpp>
 
@@ -43,10 +42,10 @@ namespace devkit {
         }
 
         ServiceStatus Status(std::vector<Processes::ProcessDescriptor>& activeProcesses) {
-            if (!definition.monitorProcessFilter) {
+            if (!definition.processFilter) {
                 return ServiceStatus::UNKNOWN;
             }
-            if (Processes::ProcessExists(activeProcesses, *definition.monitorProcessFilter)) {
+            if (Processes::ProcessExists(activeProcesses, *definition.processFilter)) {
                 return ServiceStatus::UP;
             } else {
                 return ServiceStatus::DOWN;
@@ -59,24 +58,28 @@ namespace devkit {
                 return true; // Если healthcheck не задан, считаем сервис здоровым
             }
             HealthcheckDefinition healthcheck = *definition.healthcheck;
-            Utf8Guard utf8(healthcheck.utf8.value_or(definition.utf8));
             std::string workingDirectory = healthcheck.workingDirectory.value_or(definition.workingDirectory);
             std::unordered_map<std::string, std::string> env = healthcheck.environment.value_or(definition.environment);
             std::string command = JoinShellCommands(healthcheck.command);
             auto startTime = std::chrono::steady_clock::now();
+
+            RunSpec spec = RunSpec {
+                .command = command,
+                .workingDirectory = workingDirectory,
+                .environment = env,
+                .utf8 = healthcheck.utf8.value_or(definition.utf8),
+                .createNewProcessGroup = false,
+                .detachAfterSeconds = std::nullopt,
+                .detachAfterMessage = std::nullopt,
+                .timeoutSeconds = healthcheck.timeout
+            };
             while (true) {
                 auto currentTime = std::chrono::steady_clock::now();
                 auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(currentTime - startTime).count();
                 if (elapsed >= healthcheck.timeout) {
                     return false;
                 }
-                RunResult result = ShellRunner::Run(
-                    command,
-                    workingDirectory,
-                    env,
-                    false,
-                    healthcheck.timeout
-                );
+                RunResult result = ShellRunner::Run(spec);
                 if (ShellRunner::IsValidExitCode(result, healthcheck.exitCodes)) {
                     return true;
                 }
@@ -85,73 +88,78 @@ namespace devkit {
         }
 
         void Stop(std::vector<Processes::ProcessDescriptor>& activeProcesses) {
-            Utf8Guard utf8(definition.utf8);
-            if (definition.monitorProcessFilter && !Processes::ProcessExists(activeProcesses, *definition.monitorProcessFilter)) {
+            if (definition.processFilter && !Processes::ProcessExists(activeProcesses, *definition.processFilter)) {
                 return;
             }
-            if (!definition.stopCommand.empty()) {
-                ShellRunner::Run(
-                    JoinShellCommands(definition.stopCommand),
-                    definition.workingDirectory,
-                    definition.environment
-                );
-            } else if (definition.monitorProcessFilter) {
-                Processes::TerminateProcesses(*definition.monitorProcessFilter);
+            if (definition.stopCommand) {
+                RunSpec spec = GetStopCommandSpec();
+                RunResult result = ShellRunner::Run(spec);
+                ValidateRunResult("Stop command", result, *definition.stopCommand);
+            } else if (definition.processFilter) {
+                Processes::TerminateProcesses(*definition.processFilter);
             } else {
-                Info("-- Can not stop {} - no stopCommand and no monitorProcess specified", definition.name);
+                Info("-- Can not stop {} - no stop-command and no process-filter specified", definition.name);
                 return;
             }
-            if (definition.monitorProcessFilter) {
-                Processes::WaitForNoActiveProcess(*definition.monitorProcessFilter);
+            if (definition.processFilter) {
+                Processes::WaitForNoActiveProcess(*definition.processFilter);
             }
         }
 
         void Start(std::vector<Processes::ProcessDescriptor>& activeProcesses) {
-            Utf8Guard utf8(definition.utf8);
-            if (definition.monitorProcessFilter && Processes::ProcessExists(activeProcesses, *definition.monitorProcessFilter)) {
+            if (definition.processFilter && Processes::ProcessExists(activeProcesses, *definition.processFilter)) {
+                // Already UP
                 return;
             }
-            if (definition.startCommand.empty()) {
-                throw std::runtime_error("Can not start " + definition.name + ": startCommand is empty");
+            
+            RunSpec spec = GetStartCommandSpec();
+            RunResult result = ShellRunner::Run(spec);
+            ValidateRunResult("Start command", result, definition.startCommand);
+
+            if (definition.processFilter) {
+                Processes::WaitForActiveProcess(*definition.processFilter);
+                return;
             }
-            if (definition.detachAfterMessage.has_value()) {
-                std::optional<int> exitCode = ShellRunner::Run(
-                    JoinShellCommands(definition.startCommand),
-                    definition.workingDirectory,
-                    definition.environment,
-                    definition.detachAfterMessage.value()
-                );
-                if (exitCode.has_value() && (*exitCode) != 0) {
-                    throw std::runtime_error("Start command exited with code: " + std::to_string(*exitCode));
-                }
-            } else if (definition.detachAfterSeconds.has_value()) {
-                std::optional<int> exitCode = ShellRunner::Run(
-                    JoinShellCommands(definition.startCommand),
-                    definition.workingDirectory,
-                    definition.environment,
-                    definition.detachAfterSeconds.value()
-                );
-                if (exitCode.has_value() && (*exitCode) != 0) {
-                    throw std::runtime_error("Start command exited with code: " + std::to_string(*exitCode));
-                }
-                if (definition.monitorProcessFilter) {
-                    Processes::WaitForActiveProcess(*definition.monitorProcessFilter);
-                    return;
-                }
-            } else {
-                RunResult result = ShellRunner::Run(
-                    JoinShellCommands(definition.startCommand),
-                    definition.workingDirectory,
-                    definition.environment,
-                    true
-                );
-                if (!result.exitCode) {
-                    throw std::runtime_error("Start command failed with no exit code");
-                }
-                int exitCode = *result.exitCode;
-                if (exitCode != 0) {
-                    throw std::runtime_error("Start command exited with code: " + std::to_string(exitCode));
-                }
+        }
+
+    private:
+        RunSpec GetStartCommandSpec() {
+            const ServiceCommandDefinition& cmdDef = definition.startCommand;
+            return RunSpec {
+                .command = JoinShellCommands(cmdDef.command),
+                .workingDirectory = cmdDef.workingDirectory.value_or(definition.workingDirectory),
+                .environment = cmdDef.environment.value_or(definition.environment),
+                .utf8 = cmdDef.utf8.value_or(definition.utf8),
+                .createNewProcessGroup = cmdDef.createNewProcessGroup.value_or(true),
+                .detachAfterSeconds = cmdDef.detachAfterSeconds,
+                .detachAfterMessage = cmdDef.detachAfterMessage,
+                .timeoutSeconds = cmdDef.timeout.value_or(-1)
+            };
+        }
+
+        RunSpec GetStopCommandSpec() {
+            const ServiceCommandDefinition& cmdDef = *definition.stopCommand;
+            return RunSpec {
+                .command = JoinShellCommands(cmdDef.command),
+                .workingDirectory = cmdDef.workingDirectory.value_or(definition.workingDirectory),
+                .environment = cmdDef.environment.value_or(definition.environment),
+                .utf8 = cmdDef.utf8.value_or(definition.utf8),
+                .createNewProcessGroup = cmdDef.createNewProcessGroup.value_or(false),
+                .detachAfterSeconds = cmdDef.detachAfterSeconds,
+                .detachAfterMessage = cmdDef.detachAfterMessage,
+                .timeoutSeconds = cmdDef.timeout.value_or(-1)
+            };
+        }
+
+        void ValidateRunResult(const std::string& context, const RunResult& result, const ServiceCommandDefinition& cmdDef) {
+            if (result.timedOut) {
+                throw std::runtime_error("Start command timed out");
+            }
+            if (result.exitCode && !IsValidExitCode(result, cmdDef.exitCodes)) {
+                throw std::runtime_error("Start command exited with code: " + std::to_string(*result.exitCode));
+            }
+            if (result.errorCode) {
+                throw std::runtime_error("Start command failed: error " + std::to_string(*result.errorCode));
             }
         }
     };

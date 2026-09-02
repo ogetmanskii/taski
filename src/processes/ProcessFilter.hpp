@@ -43,6 +43,19 @@ namespace devkit::Processes {
             return "Any process";
         }
 
+        void Validate() {
+            if (executablePattern) {
+                return;
+            }
+            if (commandLineArgsPattern) {
+                return;
+            }
+            if (workingDirectoryPattern) {
+                return;
+            }
+            throw std::runtime_error("Invalid process filter specified");
+        }
+
         bool Matches(ProcessDescriptor& d) {
             if (executablePattern) {
                 if (!MatchProcessName(d.GetExecutablePathNormalized(), *executablePattern)) {

@@ -50,6 +50,13 @@ namespace devkit::YamlUtils {
         return node.as<bool>();
     }
 
+    inline int GetInt(const YAML::Node& node, int defaultValue) {
+        if (!node || !node.IsScalar()) {
+            return defaultValue;
+        }
+        return node.as<int>();
+    }
+
     inline std::unordered_map<std::string, std::string> GetMap(const YAML::Node& node) {
         std::unordered_map<std::string, std::string> map;
         if (!node || !node.IsMap()) {
