@@ -45,9 +45,9 @@ cd my-backend-project
 
 ```
 # .env
-PGSQL_HOME=путь/к/postgres
-PG_USER=myuser
-PG_PASSWORD=s3cret
+PGSQL_HOME=C:/Postgres
+PG_USER=postgres
+PG_PASSWORD=postgres
 ```
 
 3. Создайте файл `environment.yml`:
@@ -56,24 +56,25 @@ PG_PASSWORD=s3cret
 # environment.yml
 services:
   postgres:
-    name: PostgreSQL
+    utf8: true
     work-dir: ${PGSQL_HOME}
+    env:
+      PGPORT: 15433
     start: 
-      cmd: bin\pg_ctl start -D data -l logfile.txt
-      detach-after-seconds: 0.1
-    stop: bin\pg_ctl stop -D data
-    process-filter: postgres.exe
+      cmd: bin\pg_ctl start -D data -l postgres.txt
+      timeout: 10
+    process-filter: ${PGSQL_HOME}/bin/postgres.exe
     healthcheck:
       cmd: bin\pg_isready -h localhost -d postgres -U postgres
-      utf8: true
       interval: 2.5
       timeout: 15
+    stop: bin\pg_ctl stop -D data
     
 tasks:
   create-db:
     name: Create dev database
     work-dir: ${PGSQL_HOME}
-    cmd: createdb -U ${PG_USER} myapp_dev
+    cmd: bin\createdb -U ${PG_USER} myapp_dev
 ```
 
 4. Запустите:
