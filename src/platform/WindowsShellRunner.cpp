@@ -170,14 +170,37 @@ namespace {
         return piProcInfo.hProcess;
     }
 
-    void ReadProcessOutput(HANDLE hStdOutRead, bool printToConsole = true) {
+    void ReadProcessOutput(HANDLE hStdOutRead, HANDLE hProcess, bool printToConsole = true) {
         CHAR chBuffer[4096];
         DWORD dwRead;
         BOOL bSuccess;
 
-        while(true) {
+        while (true) {
+            DWORD waitResult = WaitForSingleObject(hProcess, 0);
+            if (waitResult == WAIT_OBJECT_0) {
+                DWORD dwAvail;
+                if (PeekNamedPipe(hStdOutRead, NULL, 0, NULL, &dwAvail, NULL) && dwAvail > 0) {
+                    bSuccess = ReadFile(hStdOutRead, chBuffer, min(sizeof(chBuffer) - 1, dwAvail), &dwRead, NULL);
+                    if (bSuccess && dwRead > 0) {
+                        chBuffer[dwRead] = '\0';
+                        if (printToConsole) {
+                            std::cout << chBuffer;
+                            std::cout.flush();
+                        }
+                    }
+                }
+                break;
+            }
+
+            DWORD dwAvail;
+            if (!PeekNamedPipe(hStdOutRead, NULL, 0, NULL, &dwAvail, NULL) || dwAvail == 0) {
+                Sleep(10);
+                continue;
+            }
             bSuccess = ReadFile(hStdOutRead, chBuffer, sizeof(chBuffer) - 1, &dwRead, NULL);
-            if (!bSuccess || dwRead == 0) break;
+            if (!bSuccess || dwRead == 0) {
+                break;
+            }
 
             chBuffer[dwRead] = '\0';
             if (printToConsole) {
@@ -232,8 +255,8 @@ namespace {
         HANDLE hStdOutRead, hStdOutWrite;
         HANDLE hProcess = CreateChildProcess(command, workingDirectory, environment, createNewProcessGroup, hStdOutRead, hStdOutWrite);
 
-        std::thread outputThread([hStdOutRead]() {
-            ReadProcessOutput(hStdOutRead, true);
+        std::thread outputThread([hStdOutRead, hProcess]() {
+            ReadProcessOutput(hStdOutRead, hProcess, true);
         });
 
         DWORD exitCode;
@@ -257,6 +280,7 @@ namespace {
                 };
             } else {
                 outputThread.join();
+
                 CloseHandle(hStdOutRead);
                 CloseHandle(hProcess);
 
