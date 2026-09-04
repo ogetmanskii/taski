@@ -18,16 +18,9 @@ tasks:
       - cmake-configure
     work-dir: build
     cmd: cmake --build . --config Release
-    after: open-in-explorer
   build-debug:
     depends-on: 
       - conan-install-debug
       - cmake-configure
     work-dir: build
     cmd: cmake --build . --config Debug
-    after: open-in-explorer
-  open-in-explorer:
-    hidden: true
-    work-dir: build
-    cmd: explorer ReleaseZip
-    exit-codes: [0,1]
