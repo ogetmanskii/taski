@@ -34,7 +34,7 @@ namespace {
 
     void PrintMenuColumns(
         std::vector<MenuChoice> menuChoices,
-        const std::string& prompt = "> ",
+        const std::string& prompt = Color::Green("$ "),
         int minKeyWidth = 1,
         int columnSpacing = 2) {
 
@@ -194,7 +194,7 @@ namespace devkit::Menu {
                 }
             } else {
                 correctPipeline = false;
-                std::cout << "-- Unknown choice: " << action << std::endl;
+                Info("-- No such action: {}", action);
             }
         }
         if (correctPipeline) {
