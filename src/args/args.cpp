@@ -24,7 +24,7 @@ namespace devkit {
         app.add_flag("--no-color,--nc", args.noColor, "No color mode");
         app.add_flag("--version,-v", args.versionCommand, "Show version");
         
-        auto* listCmd = app.add_subcommand("list", "List services and tasks");
+        auto* listCmd = app.add_subcommand("ls", "List services and tasks");
 
         auto* upCmd = app.add_subcommand("up", "Start services");
         upCmd->add_option("services", args.upServicesList, "List of services to start. Empty list means all services")

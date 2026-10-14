@@ -22,7 +22,6 @@ set(PROJECT_VERSION_MAJOR ${VERSION_MAJOR})
 set(PROJECT_VERSION_MINOR ${VERSION_MINOR})
 set(PROJECT_VERSION_PATCH ${VERSION_PATCH})
 set(PROJECT_VERSION "${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}")
-set(PROJECT_VERSION_FULL "${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}")
 
 # Настройка заголовочного файла версии
 configure_file(
@@ -73,7 +72,7 @@ endif()
 
 # Установка свойства VERSION для цели
 set_target_properties(cli PROPERTIES
-    VERSION ${PROJECT_VERSION_FULL}
+    VERSION ${PROJECT_VERSION}
     SOVERSION ${PROJECT_VERSION_MAJOR}
 )
 
@@ -95,12 +94,12 @@ add_custom_command(
         ${CMAKE_CURRENT_SOURCE_DIR}/readme.md
         $<TARGET_FILE_DIR:cli>/readme.md
     COMMAND ${CMAKE_COMMAND} -E tar "cf" 
-        ${CMAKE_CURRENT_BINARY_DIR}/ReleaseZip/cli-${PROJECT_VERSION_FULL}.zip 
+        ${CMAKE_CURRENT_BINARY_DIR}/ReleaseZip/cli-${PROJECT_VERSION}.zip 
         --format=zip 
         -- 
         cli${CMAKE_EXECUTABLE_SUFFIX}
         examples
         readme.md
     WORKING_DIRECTORY $<TARGET_FILE_DIR:cli>
-    COMMENT "Creating release archive cli-${PROJECT_VERSION_FULL}.zip"
+    COMMENT "Creating release archive cli-${PROJECT_VERSION}.zip"
 )

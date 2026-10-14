@@ -27,17 +27,28 @@ namespace {
 namespace devkit::Menu {
 
     void RunLoop(std::shared_ptr<ApplicationContext> context) {
+        size_t serviceCount = context->GetServices().size();
+        size_t taskCount = context->GetTasks().size();
         while (true) {
             auto activeProcesses = GetActiveProcesses();
             std::vector<MenuItem> menu;
-            if (context->GetServices().size() > 1) {
+            menu.reserve(serviceCount + taskCount + 2);
+            int startAllItemIdx = -1;
+            int stopAllItemIdx = -1;
+            if (serviceCount > 1) {
                 menu.push_back(MenuItem("Start All", "Start All Services", Plan::PlanStartAllServices));
+                startAllItemIdx = 0;
                 menu.push_back(MenuItem("Stop All", "Stop All Services", Plan::PlanStopAllServices));
+                stopAllItemIdx = 1;
             }
+
+            bool noActiveServices = true;
+            bool noInactiveServices = true;
             for (auto& service : context->GetServices()) {
                 auto status = service->Status(activeProcesses);
                 const std::string& serviceName = service->definition.name;
                 if (status == ServiceStatus::UP) {
+                    noActiveServices = false;
                     menu.push_back(MenuItem(
                         std::format("{} {}", serviceName, Color::Green("on")),
                         std::format("Stop {}", serviceName),
@@ -45,6 +56,7 @@ namespace devkit::Menu {
                         Plan::PlanStopService(ctx, pipeline, service);
                     }));
                 } else if (status == ServiceStatus::DOWN) {
+                    noInactiveServices = false;
                     menu.push_back(MenuItem(
                         std::format("{} {}", serviceName, Color::Gray("off")),
                         std::format("Start {}", serviceName),
@@ -61,6 +73,14 @@ namespace devkit::Menu {
                     }
                     ));
                 }
+            }
+            if (noInactiveServices && startAllItemIdx > -1) {
+                MenuItem& startAllItem = menu[startAllItemIdx];
+                startAllItem.title = Color::Gray(startAllItem.title);
+            }
+            if (noActiveServices && stopAllItemIdx > -1) {
+                MenuItem& stopAllItem = menu[stopAllItemIdx];
+                stopAllItem.title = Color::Gray(stopAllItem.title);
             }
             for (auto& task : context->GetTasks()) {
                 if (task->IsHidden()) {

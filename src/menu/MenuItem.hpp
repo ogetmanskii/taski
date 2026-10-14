@@ -28,7 +28,7 @@ namespace devkit::Menu {
             length(Console::GetTerminalLength(this->title)) {
         }
 
-        const std::string title;
+        std::string title;
         const std::string description;
         const std::function<void(devkit::ApplicationContext&, devkit::Pipeline&)> pipelineAction;
         const int length;
