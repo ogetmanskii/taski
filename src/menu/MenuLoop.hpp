@@ -37,9 +37,9 @@ namespace devkit::Menu {
             int stopAllItemIdx = -1;
             if (serviceCount > 1) {
                 menu.push_back(MenuItem("Start All", "Start All Services", Plan::PlanStartAllServices));
-                startAllItemIdx = 0;
+                startAllItemIdx = menu.size() - 1;
                 menu.push_back(MenuItem("Stop All", "Stop All Services", Plan::PlanStopAllServices));
-                stopAllItemIdx = 1;
+                stopAllItemIdx = menu.size() - 1;
             }
 
             bool noActiveServices = true;
@@ -61,26 +61,24 @@ namespace devkit::Menu {
                         std::format("{} {}", serviceName, Color::Gray("off")),
                         std::format("Start {}", serviceName),
                         [&](ApplicationContext& ctx, Pipeline& pipeline) {
-                        Plan::PlanStartService(ctx, pipeline, service);
-                    }
+                            Plan::PlanStartService(ctx, pipeline, service);
+                        }
                     ));
                 } else {
                     menu.push_back(MenuItem(
                         serviceName,
                         std::format("Run {}", serviceName),
                         [&](ApplicationContext& ctx, Pipeline& pipeline) {
-                        Plan::PlanStartService(ctx, pipeline, service);
-                    }
+                            Plan::PlanStartService(ctx, pipeline, service);
+                        }
                     ));
                 }
             }
-            if (noInactiveServices && startAllItemIdx > -1) {
-                MenuItem& startAllItem = menu[startAllItemIdx];
-                startAllItem.title = Color::Gray(startAllItem.title);
+            if (noInactiveServices && startAllItemIdx != -1) {
+                menu[startAllItemIdx].MakeGray();
             }
-            if (noActiveServices && stopAllItemIdx > -1) {
-                MenuItem& stopAllItem = menu[stopAllItemIdx];
-                stopAllItem.title = Color::Gray(stopAllItem.title);
+            if (noActiveServices && stopAllItemIdx != -1) {
+                menu[stopAllItemIdx].MakeGray();
             }
             for (auto& task : context->GetTasks()) {
                 if (task->IsHidden()) {

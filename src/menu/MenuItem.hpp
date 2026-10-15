@@ -28,7 +28,12 @@ namespace devkit::Menu {
             length(Console::GetTerminalLength(this->title)) {
         }
 
-        std::string title;
+        void MakeGray() {
+            std::string& mutableTitle = const_cast<std::string&>(title);
+            mutableTitle = Color::Gray(mutableTitle);
+        }
+
+        const std::string title;
         const std::string description;
         const std::function<void(devkit::ApplicationContext&, devkit::Pipeline&)> pipelineAction;
         const int length;
