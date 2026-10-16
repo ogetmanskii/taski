@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 3.20)
-set(CMAKE_CONFIGURATION_TYPES "Debug;Release" CACHE STRING "" FORCE)
+
+set(CMAKE_CONFIGURATION_TYPES "Debug;Release" CACHE STRING "")
 set(CMAKE_TOOLCHAIN_FILE "conan_toolchain.cmake")
 
 project(devkit LANGUAGES CXX)
@@ -8,39 +9,21 @@ if(MSVC)
     add_compile_options(/utf-8)
 endif()
 
-# Чтение версии из файла
 file(READ "${CMAKE_SOURCE_DIR}/version/VERSION" VERSION_FILE_CONTENT)
 string(STRIP "${VERSION_FILE_CONTENT}" VERSION_FROM_FILE)
 
-# Парсинг версии
 string(REPLACE "." ";" VERSION_LIST ${VERSION_FROM_FILE})
-list(GET VERSION_LIST 0 VERSION_MAJOR)
-list(GET VERSION_LIST 1 VERSION_MINOR)
-list(GET VERSION_LIST 2 VERSION_PATCH)
-
-# Установка переменных проекта
-set(PROJECT_VERSION_MAJOR ${VERSION_MAJOR})
-set(PROJECT_VERSION_MINOR ${VERSION_MINOR})
-set(PROJECT_VERSION_PATCH ${VERSION_PATCH})
-set(PROJECT_VERSION "${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}")
-
-# Настройка заголовочного файла версии
+list(GET VERSION_LIST 0 PROJECT_VERSION_MAJOR)
+list(GET VERSION_LIST 1 PROJECT_VERSION_MINOR)
+list(GET VERSION_LIST 2 PROJECT_VERSION_PATCH)
+set(PROJECT_VERSION "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH}")
 configure_file(
     "${CMAKE_SOURCE_DIR}/version/version.h.in"
     "${CMAKE_BINARY_DIR}/generated/version.h"
 )
 
-# Ресурсный файл для Windows
-if(WIN32)
-    configure_file(
-        "${CMAKE_SOURCE_DIR}/version/version.rc.in"
-        "${CMAKE_BINARY_DIR}/generated/version.rc"
-    )
-endif()
-
 find_package(inja REQUIRED)
 find_package(yaml-cpp REQUIRED)
-find_package(GTest REQUIRED)
 
 add_executable(
     cli 
@@ -61,8 +44,16 @@ target_link_libraries(cli
     pantor::inja
     yaml-cpp::yaml-cpp
 )
+set_target_properties(cli PROPERTIES
+    VERSION ${PROJECT_VERSION}
+    SOVERSION ${PROJECT_VERSION_MAJOR}
+)
 
 if(WIN32)
+    configure_file(
+        "${CMAKE_SOURCE_DIR}/version/version.rc.in"
+        "${CMAKE_BINARY_DIR}/generated/version.rc"
+    )
     target_sources(cli PRIVATE 
         ${CMAKE_BINARY_DIR}/generated/version.rc
         "src/platform/WindowsProcesses.cpp"
@@ -71,16 +62,6 @@ if(WIN32)
     )
 endif()
 
-# Установка свойства VERSION для цели
-set_target_properties(cli PROPERTIES
-    VERSION ${PROJECT_VERSION}
-    SOVERSION ${PROJECT_VERSION_MAJOR}
-)
-
-add_executable("test-executable" "test_executable/main.cpp")
-target_compile_features("test-executable" PRIVATE cxx_std_20)
-
-# Создание архива после сборки
 add_custom_command(
     TARGET cli POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E remove_directory ${CMAKE_CURRENT_BINARY_DIR}/ReleaseZip

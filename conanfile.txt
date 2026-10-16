@@ -1,5 +1,4 @@
 [requires]
-gtest/1.17.0
 inja/3.5.0
 yaml-cpp/0.9.0
 
