@@ -7,7 +7,7 @@
 #include <unordered_map>
 #include <exception>
 
-#include <generated/version.h>
+#include "version.h"
 
 #include <Plan.hpp>
 #include <ApplicationContext.hpp>
