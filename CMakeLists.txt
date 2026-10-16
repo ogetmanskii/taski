@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 3.20)
 set(CMAKE_CONFIGURATION_TYPES "Debug;Release" CACHE STRING "" FORCE)
+set(CMAKE_TOOLCHAIN_FILE "conan_toolchain.cmake")
 
 project(devkit LANGUAGES CXX)
 

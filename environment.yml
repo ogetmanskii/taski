@@ -10,7 +10,7 @@ tasks:
     depends-on: 
       - conan-install-debug
       - conan-install-release
-    cmd: cmake -S . -B build -DCMAKE_TOOLCHAIN_FILE="conan_toolchain.cmake"
+    cmd: cmake -S . -B build
   build-release:
     depends-on: 
       - conan-install-release
