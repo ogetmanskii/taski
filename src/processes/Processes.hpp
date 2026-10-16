@@ -1,16 +1,10 @@
 #pragma once
 
-#include <string>
 #include <vector>
-#include <algorithm>
-#include <functional>
-#include <iostream>
 #include <thread>
 
 #include <processes/ProcessFilter.hpp>
 #include <processes/ProcessDescriptor.hpp>
-#include <util/StringUtils.hpp>
-#include <util/WildcardMatcher.hpp>
 #include <console/Console.hpp>
 
 namespace devkit::Processes {

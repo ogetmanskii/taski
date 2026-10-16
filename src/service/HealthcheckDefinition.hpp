@@ -8,7 +8,7 @@
 namespace devkit {
 
     struct HealthcheckDefinition {
-        
+
         // Команда для проверки
         // cmd
         std::vector<std::string> command;

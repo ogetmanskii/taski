@@ -79,9 +79,9 @@ add_custom_command(
         ${CMAKE_CURRENT_BINARY_DIR}/ReleaseZip/cli-${PROJECT_VERSION}.zip 
         --format=zip 
         -- 
-        cli${CMAKE_EXECUTABLE_SUFFIX}
-        examples
-        readme.md
+        "cli${CMAKE_EXECUTABLE_SUFFIX}"
+        "examples"
+        "readme.md"
     WORKING_DIRECTORY $<TARGET_FILE_DIR:cli>
     COMMENT "Creating release archive cli-${PROJECT_VERSION}.zip"
 )

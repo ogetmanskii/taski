@@ -1,16 +1,20 @@
 #pragma once
 
-#include <memory>
-#include <exception>
 #include <chrono>
+#include <exception>
+#include <memory>
 #include <optional>
+#include <unordered_set>
+#include <utility>
 
-#include <processes/Processes.hpp>
-#include <processes/ProcessDescriptor.hpp>
 #include <ApplicationContext.hpp>
+#include <action/Action.hpp>
 #include <console/Color.hpp>
 #include <console/DurationFormatter.hpp>
-#include <action/Action.hpp>
+#include <format>
+#include <processes/ProcessDescriptor.hpp>
+#include <processes/Processes.hpp>
+#include <string>
 
 namespace devkit {
 

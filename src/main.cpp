@@ -1,29 +1,26 @@
-#include <optional>
-#include <filesystem>
-#include <string>
-#include <algorithm>
-#include <vector>
-#include <memory>
-#include <unordered_map>
 #include <exception>
+#include <filesystem>
+#include <memory>
+#include <optional>
+#include <string>
+#include <unordered_map>
+#include <vector>
+#include <cstdlib>
 
 #include "version.h"
 
-#include <Plan.hpp>
 #include <ApplicationContext.hpp>
+#include <Plan.hpp>
 #include <processes/Processes.hpp>
 
-#include <console/Console.hpp>
-#include <console/Color.hpp>
-#include <parser/EnvironmentParser.hpp>
-#include <parser/DotEnvParser.hpp>
+#include "Pipeline.hpp"
 #include <args/Args.hpp>
-#include <task/Task.hpp>
-#include <action/Action.hpp>
-#include <action/RunTaskAction.hpp>
-#include <action/StartServiceAction.hpp>
-#include <action/StopServiceAction.hpp>
+#include <console/Color.hpp>
+#include <console/Console.hpp>
 #include <menu/MenuLoop.hpp>
+#include <parser/DotEnvParser.hpp>
+#include <parser/EnvironmentParser.hpp>
+#include <task/Task.hpp>
 
 using namespace devkit;
 
