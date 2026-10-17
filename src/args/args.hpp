@@ -5,40 +5,36 @@
 #include <vector>
 
 namespace devkit {
-    class Args {
-    public:
-        std::string currentPath;
-        std::string environmentFile;
-        std::string dotEnvFile;
-        bool noColor = false;
 
-        bool listCommand = false;
+class Args {
+ public:
+  std::string currentPath;
+  std::string environmentFile;
+  std::string dotEnvFile;
+  bool noColor = false;
 
-        bool upCommand = false;
-        std::vector<std::string> upServicesList;
+  bool listCommand = false;
 
-        bool downCommand = false;
-        std::vector<std::string> downServicesList;
-        
-        std::vector<std::string> runList;
+  bool upCommand = false;
+  std::vector<std::string> upServicesList;
 
-        bool printStatus = false;
-        bool menu = false;
+  bool downCommand = false;
+  std::vector<std::string> downServicesList;
 
-        bool versionCommand = false;
+  std::vector<std::string> runList;
 
-        std::optional<int> exitCode;
+  bool printStatus = false;
+  bool menu = false;
 
-        const bool HasSpecificCommands() const {
-            return listCommand 
-                || upCommand
-                || downCommand
-                || printStatus
-                || menu
-                || versionCommand
-                || !runList.empty();
-        };
+  bool versionCommand = false;
 
-        static const Args FromArgv(int argc, char* argv[]);
-    };
-}
+  std::optional<int> exitCode;
+
+  const bool HasSpecificCommands() const {
+    return listCommand || upCommand || downCommand || printStatus || menu || versionCommand || !runList.empty();
+  };
+
+  static const Args FromArgv(int argc, char* argv[]);
+};
+
+}  // namespace devkit

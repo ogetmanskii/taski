@@ -10,25 +10,21 @@
 #include "service/Service.hpp"
 
 namespace devkit {
-    class StopServiceAction : public Action {
-    public:
-        StopServiceAction(std::shared_ptr<Service> service)
-            : service(std::move(service)) {
-        }
 
-        void Run(ApplicationContext& appCtx, Pipeline& pipeline) override {
-            service->Stop(pipeline.RefreshActiveProcesses());
-        }
+class StopServiceAction : public Action {
+ public:
+  StopServiceAction(std::shared_ptr<Service> service) : service(std::move(service)) {}
 
-        std::string Description() override {
-            return "Stop " + service->definition.name;
-        }
+  void Run(ApplicationContext& appCtx, Pipeline& pipeline) override {
+    service->Stop(pipeline.RefreshActiveProcesses());
+  }
 
-        bool Counting() {
-            return true;
-        }
+  std::string Description() override { return "Stop " + service->definition.name; }
 
-    private:
-        std::shared_ptr<Service> service;
-    };
-}
+  bool Counting() { return true; }
+
+ private:
+  std::shared_ptr<Service> service;
+};
+
+}  // namespace devkit

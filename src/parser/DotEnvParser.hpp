@@ -1,10 +1,10 @@
 #pragma once
 
-#include <unordered_map>
-#include <string>
 #include <filesystem>
+#include <string>
+#include <unordered_map>
 
 namespace devkit::Parser {
 
-    void ParseDotEnvFile(const std::filesystem::path& path, std::unordered_map<std::string, std::string>& outEnv);
+void ParseDotEnvFile(const std::filesystem::path& path, std::unordered_map<std::string, std::string>& outEnv);
 }

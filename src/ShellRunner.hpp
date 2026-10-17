@@ -7,62 +7,61 @@
 #include <vector>
 
 namespace devkit::ShellRunner {
-    
-    struct RunSpec {
-        
-        // Shell команда.
-        const std::string command;
-        
-        // Рабочая директория.
-        const std::string workingDirectory;
-        
-        // Дополнительные переменные окружения.
-        const std::unordered_map<std::string, std::string> environment;
 
-        // Вывод в UTF-8.
-        // false - выводить STDOUT процесса в кодировке консоли по умолчанию.
-        // true - преобразовать в UTF-8.
-        const bool utf8;
+struct RunSpec {
+  // Shell команда.
+  const std::string command;
 
-        // Создавать ли новую группу процессов.
-        // false - будет дочерний процесс от текущего процесса.
-        // true - будет самостоятельный процесс.
-        const bool createNewProcessGroup;
+  // Рабочая директория.
+  const std::string workingDirectory;
 
-        // Отсоединиться от процесса после N секунд.
-        // 0 - отсоединиться сразу после запуска команды.
-        const std::optional<float> detachAfterSeconds;
+  // Дополнительные переменные окружения.
+  const std::unordered_map<std::string, std::string> environment;
 
-        // Отсоединиться от процесса после получения указанного сообщения в STDOUT.
-        const std::optional<std::string> detachAfterMessage;
+  // Вывод в UTF-8.
+  // false - выводить STDOUT процесса в кодировке консоли по умолчанию.
+  // true - преобразовать в UTF-8.
+  const bool utf8;
 
-        // Таймаут ожидания процесса.
-        // Если указано -1, тогда таймаут отсутствует (ждем завершения команды бесконечно).
-        // Игнорируется, если указано detachAfterSeconds.
-        const float timeoutSeconds;
-    };
+  // Создавать ли новую группу процессов.
+  // false - будет дочерний процесс от текущего процесса.
+  // true - будет самостоятельный процесс.
+  const bool createNewProcessGroup;
 
-    struct RunResult {
+  // Отсоединиться от процесса после N секунд.
+  // 0 - отсоединиться сразу после запуска команды.
+  const std::optional<float> detachAfterSeconds;
 
-        // Код возврата команды (если была завершена).
-        std::optional<int> exitCode;
-        
-        // Был ли таймаут ожидания команды.
-        bool timedOut;
+  // Отсоединиться от процесса после получения указанного сообщения в STDOUT.
+  const std::optional<std::string> detachAfterMessage;
 
-        // Код внутренней ошибки, если не удалось создать процесс или получить его код возврата.
-        std::optional<unsigned int> errorCode;
-    };
+  // Таймаут ожидания процесса.
+  // Если указано -1, тогда таймаут отсутствует (ждем завершения команды
+  // бесконечно). Игнорируется, если указано detachAfterSeconds.
+  const float timeoutSeconds;
+};
 
-    // Запуск команды по спецификации
-    RunResult Run(const RunSpec spec);
+struct RunResult {
+  // Код возврата команды (если была завершена).
+  std::optional<int> exitCode;
 
-    inline bool IsValidExitCode(RunResult runResult, std::vector<int> expectedExitCodes) {
-        if (!runResult.exitCode) {
-            return false;
-        }
-        int exitCode = runResult.exitCode.value();
-        return (expectedExitCodes.empty() && exitCode == 0)
-            || (std::find(expectedExitCodes.begin(), expectedExitCodes.end(), exitCode) != expectedExitCodes.end());
-    }
+  // Был ли таймаут ожидания команды.
+  bool timedOut;
+
+  // Код внутренней ошибки, если не удалось создать процесс или получить его код
+  // возврата.
+  std::optional<unsigned int> errorCode;
+};
+
+RunResult Run(const RunSpec spec);
+
+inline bool IsValidExitCode(RunResult runResult, std::vector<int> expectedExitCodes) {
+  if (!runResult.exitCode) {
+    return false;
+  }
+  int exitCode = runResult.exitCode.value();
+  return (expectedExitCodes.empty() && exitCode == 0) ||
+         (std::find(expectedExitCodes.begin(), expectedExitCodes.end(), exitCode) != expectedExitCodes.end());
 }
+
+}  // namespace devkit::ShellRunner

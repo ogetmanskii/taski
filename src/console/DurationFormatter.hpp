@@ -1,52 +1,54 @@
 #pragma once
 
-#include <string>
+#include "iomanip"
 #include <sstream>
+#include <string>
 
 namespace devkit::Console {
-    class DurationFormatter {
-    public:
-        static std::string Format(long long millis) {
-            if (millis < 0) millis = 0;
 
-            long long totalSeconds = millis / 1000;
-            long long days = totalSeconds / 86400;
-            long long hours = (totalSeconds % 86400) / 3600;
-            long long minutes = (totalSeconds % 3600) / 60;
-            long long seconds = totalSeconds % 60;
-            long long remainingMillis = millis % 1000;
+class DurationFormatter {
+ public:
+  static std::string Format(long long millis) {
+    if (millis < 0) millis = 0;
 
-            std::ostringstream result;
+    long long totalSeconds = millis / 1000;
+    long long days = totalSeconds / 86400;
+    long long hours = (totalSeconds % 86400) / 3600;
+    long long minutes = (totalSeconds % 3600) / 60;
+    long long seconds = totalSeconds % 60;
+    long long remainingMillis = millis % 1000;
 
-            AppendIfNonZero(result, days, "d");
-            AppendIfNonZero(result, hours, "h");
-            AppendIfNonZero(result, minutes, "m");
+    std::ostringstream result;
 
-            if (seconds > 0 || remainingMillis > 0 || result.tellp() == 0) {
-                if (remainingMillis > 0) {
-                    result << seconds << "."
-                        << std::setfill('0') << std::setw(3) << remainingMillis << "s";
-                } else {
-                    result << seconds << "s";
-                }
-            }
+    AppendIfNonZero(result, days, "d");
+    AppendIfNonZero(result, hours, "h");
+    AppendIfNonZero(result, minutes, "m");
 
-            if (result.tellp() == 0) {
-                return "0s";
-            }
+    if (seconds > 0 || remainingMillis > 0 || result.tellp() == 0) {
+      if (remainingMillis > 0) {
+        result << seconds << "." << std::setfill('0') << std::setw(3) << remainingMillis << "s";
+      } else {
+        result << seconds << "s";
+      }
+    }
 
-            std::string str = result.str();
-            if (!str.empty() && str.back() == ' ') {
-                str.pop_back();
-            }
-            return str;
-        }
+    if (result.tellp() == 0) {
+      return "0s";
+    }
 
-    private:
-        static void AppendIfNonZero(std::ostringstream& oss, long long value, const char* suffix) {
-            if (value > 0) {
-                oss << value << suffix << " ";
-            }
-        }
-    };
-}
+    std::string str = result.str();
+    if (!str.empty() && str.back() == ' ') {
+      str.pop_back();
+    }
+    return str;
+  }
+
+ private:
+  static void AppendIfNonZero(std::ostringstream& oss, long long value, const char* suffix) {
+    if (value > 0) {
+      oss << value << suffix << " ";
+    }
+  }
+};
+
+}  // namespace devkit::Console
