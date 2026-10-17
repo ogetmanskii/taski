@@ -1,23 +1,19 @@
-#include <iostream>
-#include <unordered_map>
-#include <functional>
-#include <sstream>
-#include <format>
-#include <vector>
 #include <algorithm>
-#include <chrono>
+#include <iostream>
+#include <sstream>
 #include <string>
+#include <unordered_map>
 #include <utility>
-#include <stdlib.h>
-#include <conio.h>
+#include <vector>
+#include <exception>
+#include <memory>
 
-#include <ApplicationContext.hpp>
-#include <Pipeline.hpp>
-#include <Plan.hpp>
-#include <console/Console.hpp>
-#include <console/Color.hpp>
-#include <menu/Menu.hpp>
-#include <menu/MenuItem.hpp>
+#include "ApplicationContext.hpp"
+#include "menu/MenuItem.hpp"
+#include "Pipeline.hpp"
+#include "console/Color.hpp"
+#include "console/Console.hpp"
+#include "util/StringUtils.hpp"
 
 using namespace devkit;
 using namespace devkit::Menu;

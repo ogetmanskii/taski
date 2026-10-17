@@ -5,8 +5,8 @@
 #include <vector>
 #include <unordered_map>
 
-#include <processes/ProcessFilter.hpp>
-#include <service/HealthcheckDefinition.hpp>
+#include "processes/ProcessFilter.hpp"
+#include "service/HealthcheckDefinition.hpp"
 
 namespace devkit {
 

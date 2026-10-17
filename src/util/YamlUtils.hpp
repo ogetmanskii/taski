@@ -2,13 +2,13 @@
 
 #include <filesystem>
 #include <optional>
-#include <vector>
-
 #include <string>
 #include <unordered_map>
-#include <util/StringUtils.hpp>
+#include <vector>
 
-#include <yaml-cpp/yaml.h>
+#include "util/StringUtils.hpp"
+#include "yaml-cpp/node/node.h"
+#include "yaml-cpp/yaml.h"
 
 namespace devkit::YamlUtils {
 

@@ -1,10 +1,9 @@
 #pragma once
 
-#include <string>
-#include <vector>
 #include <memory>
+#include <vector>
 
-#include <menu/MenuItem.hpp>
+#include "menu/MenuItem.hpp"
 
 namespace devkit {
     class ApplicationContext;

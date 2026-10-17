@@ -1,15 +1,15 @@
 #pragma once
 
-#include <string>
-#include <vector>
 #include <filesystem>
-#include <unordered_map>
 #include <optional>
-#include <exception>
-#include <algorithm>
-#include <memory>
+#include <stdexcept>
+#include <string>
+#include <unordered_map>
+#include <utility>
+#include <vector>
 
-#include <ShellRunner.hpp>
+#include "ShellRunner.hpp"
+#include "util/StringUtils.hpp"
 
 namespace devkit {
 

@@ -1,8 +1,9 @@
 #pragma once
 
-#include <string>
 #include <cctype>
-#include <cwctype>
+#include <string>
+#include <string_view>
+#include <cwctype> // VCIC-Excluded 
 
 namespace devkit::WildcardMatcher {
 

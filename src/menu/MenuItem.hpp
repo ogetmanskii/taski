@@ -1,9 +1,11 @@
 #pragma once
 
-#include <string>
 #include <functional>
-#include <memory>
+#include <string>
 #include <string_view>
+#include <utility>
+
+#include "console/Color.hpp"
 
 namespace devkit {
     class ApplicationContext;

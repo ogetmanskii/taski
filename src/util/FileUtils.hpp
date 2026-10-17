@@ -1,9 +1,10 @@
 #pragma once
 
-#include <string>
 #include <filesystem>
-#include <sstream>
 #include <fstream>
+#include <sstream>
+#include <stdexcept>
+#include <string>
 
 namespace devkit::FileUtils {
     std::string ReadFileUtf8(const std::filesystem::path& filePath) {

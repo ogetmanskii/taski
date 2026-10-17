@@ -1,13 +1,19 @@
 #pragma once
 
+#include <conio.h>
+#include <memory>
 #include <string>
 #include <vector>
-#include <memory>
-#include <conio.h>
+#include <format>
 
-#include <Plan.hpp>
-#include <menu/Menu.hpp>
-#include <menu/MenuItem.hpp>
+#include "Pipeline.hpp"
+#include "Plan.hpp"
+#include "console/Color.hpp"
+#include "console/Console.hpp"
+#include "menu/Menu.hpp"
+#include "menu/MenuItem.hpp"
+#include "processes/Processes.hpp"
+#include "service/Service.hpp"
 
 using namespace devkit::Menu;
 

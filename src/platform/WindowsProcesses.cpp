@@ -1,17 +1,13 @@
 #define NOMINMAX
 #include <Windows.h>
 #include <TlHelp32.h>
+#include <winternl.h>
+#include <functional>
 #include <string>
 #include <vector>
-#include <algorithm>
-#include <functional>
-#include <cctype>
-#include <winternl.h>
 
-#include <processes/Processes.hpp>
-#include <processes/ProcessDescriptor.hpp>
-#include <util/PathUtils.hpp>
-#include <util/WildcardMatcher.hpp>
+#include "processes/ProcessDescriptor.hpp"
+#include "processes/Processes.hpp"
 
 namespace devkit::Processes {
 

@@ -1,11 +1,12 @@
 #pragma once
 
-#include <vector>
 #include <thread>
+#include <vector>
+#include <chrono>
 
-#include <processes/ProcessFilter.hpp>
-#include <processes/ProcessDescriptor.hpp>
-#include <console/Console.hpp>
+#include "console/Console.hpp"
+#include "processes/ProcessDescriptor.hpp"
+#include "processes/ProcessFilter.hpp"
 
 namespace devkit::Processes {
 

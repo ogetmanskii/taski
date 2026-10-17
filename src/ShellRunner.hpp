@@ -1,8 +1,10 @@
 #pragma once
 
+#include <algorithm>
+#include <optional>
 #include <string>
 #include <unordered_map>
-#include <optional>
+#include <vector>
 
 namespace devkit::ShellRunner {
     

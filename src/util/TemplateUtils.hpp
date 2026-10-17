@@ -1,6 +1,9 @@
 #pragma once
 
-#include <inja/inja.hpp>
+#include <string>
+#include <unordered_map>
+
+#include "inja/environment.hpp"
 
 namespace {
     inja::Environment GetInjaEnvironment() {

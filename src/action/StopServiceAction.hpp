@@ -1,9 +1,13 @@
 #pragma once
 
-#include <string>
 #include <memory>
+#include <string>
+#include <utility>
 
-#include <action/Action.hpp>
+#include "ApplicationContext.hpp"
+#include "Pipeline.hpp"
+#include "action/Action.hpp"
+#include "service/Service.hpp"
 
 namespace devkit {
     class StopServiceAction : public Action {

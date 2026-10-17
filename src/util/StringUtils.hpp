@@ -1,12 +1,13 @@
 #pragma once
 
-#include <string>
-#include <sstream>
-#include <iostream>
-#include <iomanip>
-#include <fstream>
-#include <stdexcept>
 #include <algorithm>
+#include "cctype"
+#include <iomanip>
+#include <ios>
+#include <iostream>
+#include <sstream>
+#include <string>
+#include <vector>
 
 namespace devkit::StringUtils {
 

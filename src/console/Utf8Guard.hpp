@@ -1,6 +1,6 @@
 #pragma once
 
-#include <console/Console.hpp>
+#include "console/Console.hpp"
 
 namespace devkit::Console {
     class Utf8Guard {

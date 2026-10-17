@@ -1,9 +1,8 @@
 #include <iostream>
-#include <iomanip>
 #define NOMINMAX
 #include <Windows.h>
-
-#include <console/Console.hpp>
+#include <clocale>
+#include <utility>
 
 namespace devkit::Console {
 
@@ -12,6 +11,10 @@ namespace devkit::Console {
         DWORD mode = 0;
         GetConsoleMode(out, &mode);
         SetConsoleMode(out, mode | ENABLE_VIRTUAL_TERMINAL_PROCESSING);
+    }
+
+    void TransformUtf8Strings(bool transform) {
+        setlocale(LC_ALL, transform ? ".ACP" : "C");
     }
 
     void Init() {
@@ -23,10 +26,6 @@ namespace devkit::Console {
 
     void ClearScreen() {
         std::cout << "\033[2J\033[H" << std::flush;
-    }
-
-    void TransformUtf8Strings(bool transform) {
-        setlocale(LC_ALL, transform ? ".ACP" : "C");
     }
 
     std::pair<int /* width */, int /* height */> GetConsoleBounds() {

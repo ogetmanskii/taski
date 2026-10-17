@@ -1,25 +1,20 @@
-#include <string>
+#include <algorithm>
 #include <filesystem>
-#include <fstream>
 #include <sstream>
 #include <stdexcept>
-#include <algorithm>
-
-#include <windows.h>
-#include <unordered_map>
-#include <thread>
+#include <string>
+#include <atomic>
 #include <chrono>
 #include <iostream>
-#include <atomic>
-#include <cctype>
-#include <tlhelp32.h>
-#include <psapi.h>
+#include <thread>
+#include <unordered_map>
 
-#include <processes/Processes.hpp>
-#include <ShellRunner.hpp>
-#include <console/Console.hpp>
-#include <console/Utf8Guard.hpp>
-#include <util/StringUtils.hpp>
+#include <windows.h>
+#include <tlhelp32.h>
+
+#include "ShellRunner.hpp"
+#include "console/Utf8Guard.hpp"
+#include "util/StringUtils.hpp"
 
 namespace {
 

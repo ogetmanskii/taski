@@ -1,15 +1,22 @@
 #pragma once
 
-#include <vector>
 #include <string>
-#include <unordered_map>
+#include <vector>
+#include <algorithm>
+#include <memory>
+#include <optional>
+#include <stdexcept>
+#include <unordered_set>
 
-#include <ApplicationContext.hpp>
-#include <action/Action.hpp>
-#include <action/CheckServiceAction.hpp>
-#include <action/StopServiceAction.hpp>
-#include <action/StartServiceAction.hpp>
-#include <action/RunTaskAction.hpp>
+#include "ApplicationContext.hpp"
+#include "Pipeline.hpp"
+#include "action/Action.hpp"
+#include "action/CheckServiceAction.hpp"
+#include "action/RunTaskAction.hpp"
+#include "action/StartServiceAction.hpp"
+#include "action/StopServiceAction.hpp"
+#include "service/Service.hpp"
+#include "task/Task.hpp"
 
 using namespace devkit;
 
