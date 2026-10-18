@@ -16,6 +16,8 @@ namespace devkit {
 class Task {
  public:
   Task(std::string name,
+       std::optional<std::string> group,
+       std::optional<std::string> description,
        bool hidden,
        bool utf8,
        std::vector<std::string> dependsOn,
@@ -27,6 +29,8 @@ class Task {
        std::optional<std::filesystem::path> workingDirectory,
        std::optional<std::unordered_map<std::string, std::string>> env)
       : name(std::move(name)),
+        group(std::move(group)),
+        description(std::move(description)),
         hidden(hidden),
         utf8(utf8),
         dependsOn(std::move(dependsOn)),
@@ -64,6 +68,10 @@ class Task {
 
   const std::string& GetName() const { return name; }
 
+  const std::optional<std::string>& GetDescription() const { return description; };
+
+  const std::optional<std::string>& GetGroup() const { return group; };
+
   bool IsHidden() const { return hidden; }
 
   const std::vector<std::string>& GetDependsOn() const { return dependsOn; }
@@ -75,6 +83,12 @@ class Task {
  protected:
   // name
   const std::string name;
+
+  // group
+  const std::optional<std::string> group;
+
+  // description
+  const std::optional<std::string> description;
 
   // hidden
   const bool hidden;

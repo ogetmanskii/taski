@@ -8,6 +8,7 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
+#include <map>
 
 #include "ApplicationContext.hpp"
 #include "Pipeline.hpp"
@@ -48,38 +49,138 @@ void StopAllServices(std::shared_ptr<ApplicationContext> ctx) {
   pipeline.Execute();
 }
 
+void PrintServices(std::shared_ptr<ApplicationContext> ctx) {
+  if (ctx->GetServices().empty()) {
+    return;
+  }
+  Info("SERVICES:");
+  std::map<std::optional<std::string>, std::vector<std::shared_ptr<Service>>> serviceGroups;
+
+  for (auto& service : ctx->GetServices()) {
+    serviceGroups[service->definition.group].push_back(service);
+  }
+
+  for (auto& pair : serviceGroups) {
+    auto& services = pair.second;
+    if (pair.first) {
+      // has group
+      Info("  {}:", pair.first.value());
+      for (auto& service : services) {
+        auto& descriptionOpt = service->definition.description;
+        if (descriptionOpt) {
+          Info("    {} - {}", service->definition.name, Color::Yellow(descriptionOpt.value()));
+        } else {
+          Info("    {}", service->definition.name);
+        }
+      }
+    } else {
+      // has no group
+      for (auto& service : services) {
+        auto& descriptionOpt = service->definition.description;
+        if (descriptionOpt) {
+          Info("  {} - {}", service->definition.name, Color::Yellow(descriptionOpt.value()));
+        } else {
+          Info("  {}", service->definition.name);
+        }
+      }
+    }
+  }
+}
+
+void PrintTasks(std::shared_ptr<ApplicationContext> ctx) {
+  if (ctx->GetTasks().empty()) {
+    return;
+  }
+  Info("TASKS:");
+  std::map<std::optional<std::string>, std::vector<std::shared_ptr<Task>>> taskGroups;
+
+  for (auto& task : ctx->GetTasks()) {
+    if (task->IsHidden()) {
+      continue;
+    }
+    taskGroups[task->GetGroup()].push_back(task);
+  }
+
+  for (auto& pair : taskGroups) {
+    auto& tasks = pair.second;
+    if (pair.first) {
+      // has group
+      Info("  {}:", pair.first.value());
+      for (auto& task : tasks) {
+        auto& descriptionOpt = task->GetDescription();
+        if (descriptionOpt) {
+          Info("    {} - {}", task->GetName(), Color::Yellow(descriptionOpt.value()));
+        } else {
+          Info("    {}", task->GetName());
+        }
+      }
+    } else {
+      // has no group
+      for (auto& task : tasks) {
+        auto& descriptionOpt = task->GetDescription();
+        if (descriptionOpt) {
+          Info("  {} - {}", task->GetName(), Color::Yellow(descriptionOpt.value()));
+        } else {
+          Info("  {}", task->GetName());
+        }
+      }
+    }
+  }
+}
+
+void PrintServiceStatuses(std::shared_ptr<ApplicationContext> ctx) {
+  if (ctx->GetServices().empty()) {
+    Info("There is no defined services");
+    return;
+  }
+  std::map<std::optional<std::string>, std::vector<std::shared_ptr<Service>>> serviceGroups;
+
+  for (auto& service : ctx->GetServices()) {
+    serviceGroups[service->definition.group].push_back(service);
+  }
+
+  auto activeProcesses = GetActiveProcesses();
+  for (auto& pair : serviceGroups) {
+    auto& services = pair.second;
+    if (pair.first) {
+      // has group
+      Info("{}:", pair.first.value());
+      for (auto& service : services) {
+        auto status = service->Status(activeProcesses);
+        const std::string& serviceName = service->definition.name;
+        if (status == ServiceStatus::UP) {
+          Console::Info("  {} {}", serviceName, Color::Green("on"));
+        } else if (status == ServiceStatus::DOWN) {
+          Console::Info("  {} {}", serviceName, Color::Gray("off"));
+        } else {
+          Console::Info("  {} {}", serviceName, "??");
+        }
+      }
+    } else {
+      // has no group
+      for (auto& service : services) {
+        auto status = service->Status(activeProcesses);
+        const std::string& serviceName = service->definition.name;
+        if (status == ServiceStatus::UP) {
+          Console::Info("{} {}", serviceName, Color::Green("on"));
+        } else if (status == ServiceStatus::DOWN) {
+          Console::Info("{} {}", serviceName, Color::Gray("off"));
+        } else {
+          Console::Info("{} {}", serviceName, "??");
+        }
+      }
+    }
+  }
+}
+
 void ExecuteCommands(std::shared_ptr<ApplicationContext> ctx, const Args& args) {
   if (args.menu) {
     Menu::RunLoop(ctx);
   } else if (args.listCommand) {
-    if (!ctx->GetServices().empty()) {
-      Info("SERVICES:");
-      for (auto& service : ctx->GetServices()) {
-        Info("  {}", service->definition.name);
-      }
-    }
-    if (!ctx->GetTasks().empty()) {
-      Info("TASKS:");
-      for (auto& task : ctx->GetTasks()) {
-        if (task->IsHidden()) {
-          continue;
-        }
-        Info("  {}", task->GetName());
-      }
-    }
+    PrintServices(ctx);
+    PrintTasks(ctx);
   } else if (args.printStatus) {
-    auto activeProcesses = GetActiveProcesses();
-    for (auto& service : ctx->GetServices()) {
-      auto status = service->Status(activeProcesses);
-      const std::string& serviceName = service->definition.name;
-      if (status == ServiceStatus::UP) {
-        Console::Info("{} {}", serviceName, Color::Green("on"));
-      } else if (status == ServiceStatus::DOWN) {
-        Console::Info("{} {}", serviceName, Color::Gray("off"));
-      } else {
-        Console::Info("{} {}", serviceName, "??");
-      }
-    }
+    PrintServiceStatuses(ctx);
   } else if (args.upCommand) {
     if (args.upServicesList.empty()) {
       StartAllServices(ctx);

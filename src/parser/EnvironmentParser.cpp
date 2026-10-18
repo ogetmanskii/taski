@@ -147,6 +147,8 @@ std::optional<ProcessFilter> ParseProcessFilter(const YAML::Node& node) {
 ServiceDefinition ParseService(const std::string& tagName, const YAML::Node& serviceNode) {
   ServiceDefinition serviceDef;
   serviceDef.name = GetOptionalScalar<std::string>(serviceNode["name"]).value_or(tagName);
+  serviceDef.group = GetOptionalScalar<std::string>(serviceNode["group"]);
+  serviceDef.description = GetOptionalScalar<std::string>(serviceNode["description"]);
   serviceDef.workingDirectory = OrWorkingDirectory(serviceNode["work-dir"]);
   serviceDef.environment = GetMap(serviceNode["env"]);
   serviceDef.utf8 = GetOrDefault<bool>(serviceNode["utf8"], false);
@@ -180,6 +182,8 @@ void ParseServices(const YAML::Node& servicesNode, std::vector<std::shared_ptr<d
 
 std::shared_ptr<Task> ParseTask(const std::string& tag, const YAML::Node& node) {
   std::string name = GetOptionalScalar<std::string>(node["name"]).value_or(tag);
+  std::optional<std::string> group = GetOptionalScalar<std::string>(node["group"]);
+  std::optional<std::string> description = GetOptionalScalar<std::string>(node["description"]);
   std::filesystem::path workingDirectory = OrWorkingDirectory(node["work-dir"]);
   std::vector<std::string> dependsOn = GetList<std::string>(node["depends-on"]);
   std::vector<std::string> before = GetList<std::string>(node["before"]);
@@ -198,6 +202,8 @@ std::shared_ptr<Task> ParseTask(const std::string& tag, const YAML::Node& node) 
   std::unordered_map<std::string, std::string> taskEnv = GetMap(node["env"]);
 
   return std::make_shared<Task>(std::move(name),
+                                group,
+                                description,
                                 hidden,
                                 utf8,
                                 std::move(dependsOn),

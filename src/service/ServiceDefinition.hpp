@@ -43,6 +43,12 @@ struct ServiceDefinition {
   // name
   std::string name;
 
+  // group
+  std::optional<std::string> group;
+
+  // description
+  std::optional<std::string> description;
+
   // work-dir
   std::string workingDirectory;
 
@@ -67,4 +73,5 @@ struct ServiceDefinition {
   // healthcheck
   std::optional<HealthcheckDefinition> healthcheck;
 };
+
 }  // namespace devkit
