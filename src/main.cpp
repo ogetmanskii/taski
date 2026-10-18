@@ -53,18 +53,18 @@ void ExecuteCommands(std::shared_ptr<ApplicationContext> ctx, const Args& args) 
     Menu::RunLoop(ctx);
   } else if (args.listCommand) {
     if (!ctx->GetServices().empty()) {
-      Info("-- Services --");
+      Info("SERVICES:");
       for (auto& service : ctx->GetServices()) {
-        Info("{}", service->definition.name);
+        Info("  {}", service->definition.name);
       }
     }
     if (!ctx->GetTasks().empty()) {
-      Info("-- Tasks --");
+      Info("TASKS:");
       for (auto& task : ctx->GetTasks()) {
         if (task->IsHidden()) {
           continue;
         }
-        Info("{}", task->GetName());
+        Info("  {}", task->GetName());
       }
     }
   } else if (args.printStatus) {
