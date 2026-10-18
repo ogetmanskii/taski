@@ -46,8 +46,8 @@ services:
       # Отсоединиться от процесса через N секунд
       detach-after-seconds: 3
       # Отсоединиться от процесса после получения указанной фразы в STDOUT.
-      # Если detach-after-seconds и detach-after-message не указаны, тогда утилита будет ждать полного завершения команды start-команды.
-      detach-after-message: Server started
+      # Если detach-after-seconds и detach-after-phrase не указаны, тогда утилита будет ждать полного завершения команды start-команды.
+      detach-after-phrase: Server started
       # Таймаут ожидания команды: N секунд
       timeout: 5.5
       # Какие коды возврата считать успешным выполнением
@@ -65,7 +65,7 @@ services:
       utf8: true
       create-new-process-group: false
       detach-after-seconds: 3
-      detach-after-message: Server stopped
+      detach-after-phrase: Server stopped
       timeout: 5.5
       exit-codes: [0]
 

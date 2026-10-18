@@ -125,7 +125,7 @@ class Service {
                    .utf8 = cmdDef.utf8.value_or(definition.utf8),
                    .createNewProcessGroup = cmdDef.createNewProcessGroup.value_or(true),
                    .detachAfterSeconds = cmdDef.detachAfterSeconds,
-                   .detachAfterMessage = cmdDef.detachAfterMessage,
+                   .detachAfterMessage = cmdDef.detachAfterPhrase,
                    .timeoutSeconds = cmdDef.timeout.value_or(-1)};
   }
 
@@ -137,7 +137,7 @@ class Service {
                    .utf8 = cmdDef.utf8.value_or(definition.utf8),
                    .createNewProcessGroup = cmdDef.createNewProcessGroup.value_or(false),
                    .detachAfterSeconds = cmdDef.detachAfterSeconds,
-                   .detachAfterMessage = cmdDef.detachAfterMessage,
+                   .detachAfterMessage = cmdDef.detachAfterPhrase,
                    .timeoutSeconds = cmdDef.timeout.value_or(-1)};
   }
 

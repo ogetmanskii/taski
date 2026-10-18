@@ -73,6 +73,7 @@ std::vector<std::string> GetAllDependsOnTasks(ApplicationContext& ctx, Task& tas
   GetAllDependsOnTasks(ctx, task, result, observed);
   return result;
 }
+
 }  // namespace
 
 inline void PlanStartService(ApplicationContext& ctx, Pipeline& pipeline, std::shared_ptr<Service> service) {
@@ -129,8 +130,7 @@ inline void PlanStartAllServices(ApplicationContext& ctx, Pipeline& pipeline) {
 }
 
 inline void PlanStopAllServices(ApplicationContext& ctx, Pipeline& pipeline) {
-  // Остановка всех сервисов - в порядке, обратном запуску всех, с учетом
-  // зависимостей
+  // Остановка всех сервисов - в порядке, обратном запуску всех, с учетом зависимостей
   std::vector<std::shared_ptr<Action>> actions;
   actions.reserve(ctx.GetServices().size());
 

@@ -53,7 +53,7 @@ ServiceCommandDefinition ParseStartCommand(const YAML::Node& node, const Service
                                     .utf8 = std::nullopt,
                                     .createNewProcessGroup = true,
                                     .detachAfterSeconds = std::nullopt,
-                                    .detachAfterMessage = std::nullopt,
+                                    .detachAfterPhrase = std::nullopt,
                                     .timeout = -1.0f,
                                     .exitCodes = {0}};
   } else if (node.IsSequence()) {
@@ -63,7 +63,7 @@ ServiceCommandDefinition ParseStartCommand(const YAML::Node& node, const Service
                                     .utf8 = std::nullopt,
                                     .createNewProcessGroup = true,
                                     .detachAfterSeconds = std::nullopt,
-                                    .detachAfterMessage = std::nullopt,
+                                    .detachAfterPhrase = std::nullopt,
                                     .timeout = -1.0f,
                                     .exitCodes = {0}};
   } else if (node.IsMap()) {
@@ -73,7 +73,7 @@ ServiceCommandDefinition ParseStartCommand(const YAML::Node& node, const Service
                                     .utf8 = GetOptionalScalar<bool>(node["utf8"]),
                                     .createNewProcessGroup = GetOptionalScalar<bool>(node["create-new-process-group"]),
                                     .detachAfterSeconds = GetOptionalScalar<float>(node["detach-after-seconds"]),
-                                    .detachAfterMessage = GetOptionalScalar<std::string>(node["detach-after-message"]),
+                                    .detachAfterPhrase = GetOptionalScalar<std::string>(node["detach-after-phrase"]),
                                     .timeout = GetOrDefault<float>(node["timeout"], -1.0f),
                                     .exitCodes = GetList<int>(node["exit-codes"])};
   } else {
@@ -92,7 +92,7 @@ ServiceCommandDefinition ParseStopCommand(const YAML::Node& node, const ServiceD
                                     .utf8 = std::nullopt,
                                     .createNewProcessGroup = false,
                                     .detachAfterSeconds = std::nullopt,
-                                    .detachAfterMessage = std::nullopt,
+                                    .detachAfterPhrase = std::nullopt,
                                     .timeout = -1.0f,
                                     .exitCodes = {0}};
   } else if (node.IsSequence()) {
@@ -102,7 +102,7 @@ ServiceCommandDefinition ParseStopCommand(const YAML::Node& node, const ServiceD
                                     .utf8 = std::nullopt,
                                     .createNewProcessGroup = false,
                                     .detachAfterSeconds = std::nullopt,
-                                    .detachAfterMessage = std::nullopt,
+                                    .detachAfterPhrase = std::nullopt,
                                     .timeout = -1.0f,
                                     .exitCodes = {0}};
   } else if (node.IsMap()) {
@@ -112,7 +112,7 @@ ServiceCommandDefinition ParseStopCommand(const YAML::Node& node, const ServiceD
                                     .utf8 = GetOptionalScalar<bool>(node["utf8"]),
                                     .createNewProcessGroup = GetOptionalScalar<bool>(node["create-new-process-group"]),
                                     .detachAfterSeconds = GetOptionalScalar<float>(node["detach-after-seconds"]),
-                                    .detachAfterMessage = GetOptionalScalar<std::string>(node["detach-after-message"]),
+                                    .detachAfterPhrase = GetOptionalScalar<std::string>(node["detach-after-phrase"]),
                                     .timeout = GetOrDefault<float>(node["timeout"], -1.0f),
                                     .exitCodes = GetList<int>(node["exit-codes"])};
   } else {

@@ -29,8 +29,8 @@ struct ServiceCommandDefinition {
   // detach-after-seconds
   std::optional<float> detachAfterSeconds;
 
-  // detach-after-message
-  std::optional<std::string> detachAfterMessage;
+  // detach-after-phrase
+  std::optional<std::string> detachAfterPhrase;
 
   // timeout
   std::optional<float> timeout;
