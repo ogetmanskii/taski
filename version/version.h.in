@@ -9,7 +9,7 @@ constexpr int MINOR = @PROJECT_VERSION_MINOR@;
 constexpr int PATCH = @PROJECT_VERSION_PATCH@;
     
 constexpr const char* VERSION_STRING = "@PROJECT_VERSION@";
-constexpr const char* VERSION_FULL = "@PROJECT_VERSION_FULL@";
+constexpr const char* VERSION_FULL = "@PROJECT_VERSION@";
     
 inline std::string GetVersion() {
   return VERSION_FULL;
