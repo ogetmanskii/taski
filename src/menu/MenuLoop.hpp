@@ -34,6 +34,7 @@ inline bool IsReturn(const char c) { return c == ENTER || c == ESCAPE; }
 namespace devkit::Menu {
 
 void RunLoop(std::shared_ptr<ApplicationContext> context) {
+  ClearScreen();
   size_t serviceCount = context->GetServices().size();
   size_t taskCount = context->GetTasks().size();
   while (true) {
