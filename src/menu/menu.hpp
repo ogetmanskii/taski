@@ -13,6 +13,6 @@ class ApplicationContext;
 
 namespace devkit::Menu {
 
-bool Show(const std::vector<MenuItem>& items, std::shared_ptr<ApplicationContext> appContext);
+bool Show(const std::vector<MenuItem>& items, ApplicationContext& appContext);
 
 }

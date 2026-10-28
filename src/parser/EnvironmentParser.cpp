@@ -164,7 +164,7 @@ ServiceDefinition ParseService(const std::string& tagName, const YAML::Node& ser
   return serviceDef;
 }
 
-void ParseServices(const YAML::Node& servicesNode, std::vector<std::shared_ptr<devkit::Service>>& outServices) {
+void ParseServices(const YAML::Node& servicesNode, std::vector<std::unique_ptr<devkit::Service>>& outServices) {
   for (auto it = servicesNode.begin(); it != servicesNode.end(); it++) {
     const std::string& serviceTag = it->first.as<std::string>();
     const YAML::Node& serviceNode = it->second;
@@ -173,50 +173,37 @@ void ParseServices(const YAML::Node& servicesNode, std::vector<std::shared_ptr<d
     }
     try {
       auto definition = ParseService(serviceTag, serviceNode);
-      outServices.push_back(std::make_shared<Service>(std::move(definition)));
+      outServices.push_back(std::make_unique<Service>(std::move(definition)));
     } catch (const std::exception& e) {
       Info("Could not parse service: {}", e.what());
     }
   }
 }
 
-std::shared_ptr<Task> ParseTask(const std::string& tag, const YAML::Node& node) {
+std::unique_ptr<Task> ParseTask(const std::string& tag, const YAML::Node& node) {
   std::string name = GetOptionalScalar<std::string>(node["name"]).value_or(tag);
-  std::optional<std::string> group = GetOptionalScalar<std::string>(node["group"]);
-  std::optional<std::string> description = GetOptionalScalar<std::string>(node["description"]);
-  std::filesystem::path workingDirectory = OrWorkingDirectory(node["work-dir"]);
-  std::vector<std::string> dependsOn = GetList<std::string>(node["depends-on"]);
-  std::vector<std::string> before = GetList<std::string>(node["before"]);
-  std::vector<std::string> after = GetList<std::string>(node["after"]);
-  bool hidden = GetOrDefault<bool>(node["hidden"], false);
-  bool utf8 = GetOrDefault<bool>(node["utf8"], false);
-  float timeout = GetOptionalScalar<float>(node["timeout"]).value_or(-1);
-  std::vector<int> exitCodes = GetList<int>(node["exit-codes"]);
-
   auto& commandNode = node["cmd"];
   if (!commandNode) {
     throw std::runtime_error("Could not parse task " + name + ": no command specified");
   }
-
   std::vector<std::string> commands = GetShellCommandSequence(commandNode);
-  std::unordered_map<std::string, std::string> taskEnv = GetMap(node["env"]);
 
-  return std::make_shared<Task>(std::move(name),
-                                group,
-                                description,
-                                hidden,
-                                utf8,
-                                std::move(dependsOn),
-                                std::move(before),
-                                std::move(after),
-                                timeout,
-                                std::move(exitCodes),
-                                std::move(commands),
-                                std::move(workingDirectory),
-                                std::move(taskEnv));
+  return std::make_unique<Task>(Task{.name = std::move(name),
+                                     .group = GetOptionalScalar<std::string>(node["group"]),
+                                     .description = GetOptionalScalar<std::string>(node["description"]),
+                                     .hidden = GetOrDefault<bool>(node["hidden"], false),
+                                     .utf8 = GetOrDefault<bool>(node["utf8"], false),
+                                     .dependsOn = GetList<std::string>(node["depends-on"]),
+                                     .before = GetList<std::string>(node["before"]),
+                                     .after = GetList<std::string>(node["after"]),
+                                     .commands = std::move(commands),
+                                     .workingDirectory = OrWorkingDirectory(node["work-dir"]),
+                                     .env = GetMap(node["env"]),
+                                     .timeout = GetOptionalScalar<float>(node["timeout"]).value_or(-1),
+                                     .exitCodes = GetList<int>(node["exit-codes"])});
 }
 
-void ParseTasks(const YAML::Node& tasksNode, std::vector<std::shared_ptr<Task>>& outTasks) {
+void ParseTasks(const YAML::Node& tasksNode, std::vector<std::unique_ptr<Task>>& outTasks) {
   for (auto it = tasksNode.begin(); it != tasksNode.end(); it++) {
     const std::string& taskTag = it->first.as<std::string>();
     const YAML::Node& taskNode = it->second;
@@ -236,22 +223,22 @@ namespace devkit::Parser {
 
 void ParseEnvironmentYmlFile(const std::filesystem::path& filePath,
                              const std::unordered_map<std::string, std::string>& env,
-                             std::vector<std::shared_ptr<Service>>& outServices,
-                             std::vector<std::shared_ptr<Task>>& outTasks) {
+                             std::vector<std::unique_ptr<Service>>& outServices,
+                             std::vector<std::unique_ptr<Task>>& outTasks) {
   std::string yaml = RenderTemplate(FileUtils::ReadFileUtf8(filePath), env);
 
   YAML::Node rootNode = YAML::Load(yaml);
-  if (!rootNode.IsMap()) {
+  if (!rootNode || !rootNode.IsMap()) {
     return;
   }
 
   YAML::Node servicesNode = rootNode["services"];
-  if (servicesNode.IsMap()) {
+  if (!servicesNode || servicesNode.IsMap()) {
     ParseServices(servicesNode, outServices);
   }
 
   YAML::Node tasksNode = rootNode["tasks"];
-  if (tasksNode.IsMap()) {
+  if (!tasksNode || tasksNode.IsMap()) {
     ParseTasks(tasksNode, outTasks);
   }
 }

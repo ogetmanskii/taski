@@ -1,8 +1,6 @@
 #pragma once
 
-#include <memory>
 #include <string>
-#include <utility>
 
 #include "ApplicationContext.hpp"
 #include "Pipeline.hpp"
@@ -13,18 +11,18 @@ namespace devkit {
 
 class StopServiceAction : public Action {
  public:
-  StopServiceAction(std::shared_ptr<Service> service) : service(std::move(service)) {}
+  StopServiceAction(Service& service) : service(service) {}
 
   void Run(ApplicationContext& appCtx, Pipeline& pipeline) override {
-    service->Stop(pipeline.RefreshActiveProcesses());
+    service.Stop(pipeline.RefreshActiveProcesses());
   }
 
-  std::string Description() override { return "Stop " + service->definition.name; }
+  std::string Description() override { return "Stop " + service.definition.name; }
 
   bool Counting() { return true; }
 
  private:
-  std::shared_ptr<Service> service;
+  Service& service;
 };
 
 }  // namespace devkit

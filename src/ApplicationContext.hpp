@@ -13,66 +13,62 @@
 
 namespace devkit {
 
-namespace {
-
-std::unordered_map<std::string, std::shared_ptr<Service>> BuildNameToServiceMap(
-    const std::vector<std::shared_ptr<Service>>& services) {
-  std::unordered_map<std::string, std::shared_ptr<Service>> map;
-  for (auto& service : services) {
-    map[service->definition.name] = service;
-  }
-  return map;
-}
-
-std::unordered_map<std::string, std::shared_ptr<Task>> BuildNameToTaskMap(
-    const std::vector<std::shared_ptr<Task>>& tasks) {
-  std::unordered_map<std::string, std::shared_ptr<Task>> map;
-  for (auto& task : tasks) {
-    map[task->GetName()] = task;
-  }
-  return map;
-}
-}  // namespace
-
 class ApplicationContext {
  private:
   const std::filesystem::path path;
   const std::unordered_map<std::string, std::string> env;
-  const std::unordered_map<std::string, std::shared_ptr<Service>> nameToService;
-  const std::unordered_map<std::string, std::shared_ptr<Task>> nameToTask;
-  const std::vector<std::shared_ptr<Service>> services;
-  const std::vector<std::shared_ptr<Task>> tasks;
+  const std::vector<std::unique_ptr<Service>> services;
+  const std::vector<std::unique_ptr<Task>> tasks;
+  const std::unordered_map<std::string, Service*> nameToService;
+  const std::unordered_map<std::string, Task*> nameToTask;
 
  public:
   ApplicationContext(std::filesystem::path path,
                      std::unordered_map<std::string, std::string> env,
-                     std::vector<std::shared_ptr<Service>> services,
-                     std::vector<std::shared_ptr<Task>> tasks)
-      : nameToService(BuildNameToServiceMap(services)),
-        nameToTask(BuildNameToTaskMap(tasks)),
-        path(std::move(path)),
+                     std::vector<std::unique_ptr<Service>> services,
+                     std::vector<std::unique_ptr<Task>> tasks)
+      : path(std::move(path)),
         env(std::move(env)),
         services(std::move(services)),
-        tasks(std::move(tasks)) {}
+        tasks(std::move(tasks)),
+        nameToService(BuildNameToServiceMap()),
+        nameToTask(BuildNameToTaskMap()) {}
 
-  const std::vector<std::shared_ptr<Service>>& GetServices() const { return services; }
+  const std::vector<std::unique_ptr<Service>>& GetServices() const { return services; }
 
-  const std::vector<std::shared_ptr<Task>>& GetTasks() const { return tasks; }
+  const std::vector<std::unique_ptr<Task>>& GetTasks() const { return tasks; }
 
-  const std::optional<std::shared_ptr<Service>> GetService(const std::string& name) const {
-    const auto& it = nameToService.find(name);
+  Service* GetService(const std::string& name) const {
+    const auto it = nameToService.find(name);
     if (it == nameToService.end()) {
-      return std::nullopt;
+      return nullptr;
     }
     return it->second;
   }
 
-  const std::optional<std::shared_ptr<Task>> GetTask(const std::string& name) const {
-    const auto& it = nameToTask.find(name);
+  Task* GetTask(const std::string& name) const {
+    const auto it = nameToTask.find(name);
     if (it == nameToTask.end()) {
-      return std::nullopt;
+      return nullptr;
     }
     return it->second;
+  }
+
+ private:
+  std::unordered_map<std::string, Service*> BuildNameToServiceMap() {
+    std::unordered_map<std::string, Service*> map;
+    for (auto& service : services) {
+      map[service->definition.name] = &*service;
+    }
+    return map;
+  }
+
+  std::unordered_map<std::string, Task*> BuildNameToTaskMap() {
+    std::unordered_map<std::string, Task*> map;
+    for (auto& task : tasks) {
+      map[task->name] = &*task;
+    }
+    return map;
   }
 };
 }  // namespace devkit

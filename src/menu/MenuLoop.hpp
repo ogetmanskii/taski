@@ -33,10 +33,10 @@ inline bool IsReturn(const char c) { return c == ENTER || c == ESCAPE; }
 
 namespace devkit::Menu {
 
-void RunLoop(std::shared_ptr<ApplicationContext> context) {
+void RunLoop(ApplicationContext& context) {
   ClearScreen();
-  size_t serviceCount = context->GetServices().size();
-  size_t taskCount = context->GetTasks().size();
+  size_t serviceCount = context.GetServices().size();
+  size_t taskCount = context.GetTasks().size();
   while (true) {
     auto activeProcesses = GetActiveProcesses();
     std::vector<MenuItem> menu;
@@ -52,25 +52,25 @@ void RunLoop(std::shared_ptr<ApplicationContext> context) {
 
     bool noActiveServices = true;
     bool noInactiveServices = true;
-    for (auto& service : context->GetServices()) {
-      auto status = service->Status(activeProcesses);
-      const std::string& serviceName = service->definition.name;
+    for (auto& servicePtr : context.GetServices()) {
+      auto status = servicePtr->Status(activeProcesses);
+      const std::string& serviceName = servicePtr->definition.name;
       if (status == ServiceStatus::UP) {
         noActiveServices = false;
         menu.push_back(MenuItem(
             std::format("{} {}", serviceName, Color::Green("on")),
             std::format("Stop {}", serviceName),
-            [&](ApplicationContext& ctx, Pipeline& pipeline) { Plan::PlanStopService(ctx, pipeline, service); }));
+            [&](ApplicationContext& ctx, Pipeline& pipeline) { Plan::PlanStopService(ctx, pipeline, *servicePtr); }));
       } else if (status == ServiceStatus::DOWN) {
         noInactiveServices = false;
         menu.push_back(MenuItem(
             std::format("{} {}", serviceName, Color::Gray("off")),
             std::format("Start {}", serviceName),
-            [&](ApplicationContext& ctx, Pipeline& pipeline) { Plan::PlanStartService(ctx, pipeline, service); }));
+            [&](ApplicationContext& ctx, Pipeline& pipeline) { Plan::PlanStartService(ctx, pipeline, *servicePtr); }));
       } else {
         menu.push_back(
             MenuItem(serviceName, std::format("Run {}", serviceName), [&](ApplicationContext& ctx, Pipeline& pipeline) {
-              Plan::PlanStartService(ctx, pipeline, service);
+              Plan::PlanStartService(ctx, pipeline, *servicePtr);
             }));
       }
     }
@@ -80,12 +80,12 @@ void RunLoop(std::shared_ptr<ApplicationContext> context) {
     if (noActiveServices && stopAllItemIdx != -1) {
       menu[stopAllItemIdx].MakeGray();
     }
-    for (auto& task : context->GetTasks()) {
-      if (task->IsHidden()) {
+    for (auto& taskPtr : context.GetTasks()) {
+      if (taskPtr->hidden) {
         continue;
       }
-      menu.push_back(MenuItem(task->GetName(), task->GetName(), [&](ApplicationContext& ctx, Pipeline& pipeline) {
-        Plan::PlanTask(ctx, pipeline, task);
+      menu.push_back(MenuItem(taskPtr->name, taskPtr->name, [&](ApplicationContext& ctx, Pipeline& pipeline) {
+        Plan::PlanTask(ctx, pipeline, *taskPtr);
       }));
     }
 

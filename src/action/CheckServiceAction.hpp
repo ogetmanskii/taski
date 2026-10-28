@@ -18,19 +18,18 @@ class CheckServiceAction : public Action {
       : serviceName(std::move(serviceName)), autoStart(autoStart) {}
 
   void Run(ApplicationContext& appCtx, Pipeline& pipeline) override {
-    auto& serviceOpt = appCtx.GetService(serviceName);
-    if (!serviceOpt) {
+    Service* service = appCtx.GetService(serviceName);
+    if (!service) {
       throw std::runtime_error("No such service: " + serviceName);
     }
-    auto& service = **serviceOpt;
     if (autoStart) {
-      auto status = service.Status(pipeline.RefreshActiveProcesses());
+      auto status = service->Status(pipeline.RefreshActiveProcesses());
       if (status == ServiceStatus::DOWN) {
         Info("-- Start {}", serviceName);
-        service.Start(pipeline.ActiveProcesses());
+        service->Start(pipeline.ActiveProcesses());
       }
     }
-    if (!service.WaitForHealthy()) {
+    if (!service->WaitForHealthy()) {
       throw std::runtime_error(serviceName + " not healthy");
     }
   }

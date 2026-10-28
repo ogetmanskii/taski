@@ -1,8 +1,6 @@
 #pragma once
 
-#include <memory>
 #include <string>
-#include <utility>
 
 #include "ApplicationContext.hpp"
 #include "Pipeline.hpp"
@@ -12,15 +10,15 @@
 namespace devkit {
 class RunTaskAction : public Action {
  public:
-  RunTaskAction(std::shared_ptr<Task> task) : task(std::move(task)) {}
+  RunTaskAction(Task& task) : task(task) {}
 
-  void Run(ApplicationContext& appCtx, Pipeline& pipeline) override { task->Run(); }
+  void Run(ApplicationContext& appCtx, Pipeline& pipeline) override { task.Run(); }
 
-  std::string Description() override { return task->GetName(); }
+  std::string Description() override { return task.name; }
 
   bool Counting() { return true; }
 
  private:
-  std::shared_ptr<Task> task;
+  Task& task;
 };
 }  // namespace devkit

@@ -135,7 +135,7 @@ void PrintMenuColumns(std::vector<MenuChoice> menuChoices,
 }  // namespace
 
 // Возвращает true, если что-то выбрано в меню
-bool Show(const std::vector<MenuItem>& items, std::shared_ptr<ApplicationContext> appContext) {
+bool Show(const std::vector<MenuItem>& items, ApplicationContext& appContext) {
   std::unordered_map<std::string, const MenuItem*> actions;
   size_t minWidth = 1;
 
@@ -166,7 +166,7 @@ bool Show(const std::vector<MenuItem>& items, std::shared_ptr<ApplicationContext
     const MenuItem* item = actions[action];
     if (item) {
       try {
-        item->pipelineAction(*appContext, pipeline);
+        item->pipelineAction(appContext, pipeline);
       } catch (const std::exception& e) {
         Info("-- Incorrect pipeline: {}", e.what());
         correctPipeline = false;

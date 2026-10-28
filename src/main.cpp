@@ -37,27 +37,27 @@ void PutEnv(const std::pair<std::string, std::string>& envPair) {
   }
 }
 
-void StartAllServices(std::shared_ptr<ApplicationContext> ctx) {
+void StartAllServices(ApplicationContext& ctx) {
   Pipeline pipeline(ctx);
-  Plan::PlanStartAllServices(*ctx, pipeline);
+  Plan::PlanStartAllServices(ctx, pipeline);
   pipeline.Execute();
 }
 
-void StopAllServices(std::shared_ptr<ApplicationContext> ctx) {
+void StopAllServices(ApplicationContext& ctx) {
   Pipeline pipeline(ctx);
-  Plan::PlanStopAllServices(*ctx, pipeline);
+  Plan::PlanStopAllServices(ctx, pipeline);
   pipeline.Execute();
 }
 
-void PrintServices(std::shared_ptr<ApplicationContext> ctx) {
-  if (ctx->GetServices().empty()) {
+void PrintServices(ApplicationContext& ctx) {
+  if (ctx.GetServices().empty()) {
     return;
   }
   Info("SERVICES:");
-  std::map<std::optional<std::string>, std::vector<std::shared_ptr<Service>>> serviceGroups;
+  std::map<std::optional<std::string>, std::vector<Service*>> serviceGroups;
 
-  for (auto& service : ctx->GetServices()) {
-    serviceGroups[service->definition.group].push_back(service);
+  for (auto& service : ctx.GetServices()) {
+    serviceGroups[service->definition.group].push_back(service.get());
   }
 
   for (auto& pair : serviceGroups) {
@@ -87,18 +87,18 @@ void PrintServices(std::shared_ptr<ApplicationContext> ctx) {
   }
 }
 
-void PrintTasks(std::shared_ptr<ApplicationContext> ctx) {
-  if (ctx->GetTasks().empty()) {
+void PrintTasks(ApplicationContext& ctx) {
+  if (ctx.GetTasks().empty()) {
     return;
   }
   Info("TASKS:");
-  std::map<std::optional<std::string>, std::vector<std::shared_ptr<Task>>> taskGroups;
+  std::map<std::optional<std::string>, std::vector<Task*>> taskGroups;
 
-  for (auto& task : ctx->GetTasks()) {
-    if (task->IsHidden()) {
+  for (auto& task : ctx.GetTasks()) {
+    if (task->hidden) {
       continue;
     }
-    taskGroups[task->GetGroup()].push_back(task);
+    taskGroups[task->group].push_back(task.get());
   }
 
   for (auto& pair : taskGroups) {
@@ -107,36 +107,36 @@ void PrintTasks(std::shared_ptr<ApplicationContext> ctx) {
       // has group
       Info("  {}:", pair.first.value());
       for (auto& task : tasks) {
-        auto& descriptionOpt = task->GetDescription();
+        auto& descriptionOpt = task->description;
         if (descriptionOpt) {
-          Info("    {} - {}", task->GetName(), Color::Yellow(descriptionOpt.value()));
+          Info("    {} - {}", task->name, Color::Yellow(descriptionOpt.value()));
         } else {
-          Info("    {}", task->GetName());
+          Info("    {}", task->name);
         }
       }
     } else {
       // has no group
       for (auto& task : tasks) {
-        auto& descriptionOpt = task->GetDescription();
+        auto& descriptionOpt = task->description;
         if (descriptionOpt) {
-          Info("  {} - {}", task->GetName(), Color::Yellow(descriptionOpt.value()));
+          Info("  {} - {}", task->name, Color::Yellow(descriptionOpt.value()));
         } else {
-          Info("  {}", task->GetName());
+          Info("  {}", task->name);
         }
       }
     }
   }
 }
 
-void PrintServiceStatuses(std::shared_ptr<ApplicationContext> ctx) {
-  if (ctx->GetServices().empty()) {
+void PrintServiceStatuses(ApplicationContext& ctx) {
+  if (ctx.GetServices().empty()) {
     Info("There is no defined services");
     return;
   }
-  std::map<std::optional<std::string>, std::vector<std::shared_ptr<Service>>> serviceGroups;
+  std::map<std::optional<std::string>, std::vector<Service*>> serviceGroups;
 
-  for (auto& service : ctx->GetServices()) {
-    serviceGroups[service->definition.group].push_back(service);
+  for (auto& service : ctx.GetServices()) {
+    serviceGroups[service->definition.group].push_back(service.get());
   }
 
   auto activeProcesses = GetActiveProcesses();
@@ -173,7 +173,7 @@ void PrintServiceStatuses(std::shared_ptr<ApplicationContext> ctx) {
   }
 }
 
-void ExecuteCommands(std::shared_ptr<ApplicationContext> ctx, const Args& args) {
+void ExecuteCommands(ApplicationContext& ctx, const Args& args) {
   if (args.menu) {
     Menu::RunLoop(ctx);
   } else if (args.listCommand) {
@@ -187,11 +187,11 @@ void ExecuteCommands(std::shared_ptr<ApplicationContext> ctx, const Args& args) 
     } else {
       Pipeline pipeline(ctx);
       for (auto& name : args.upServicesList) {
-        auto service = ctx->GetService(name);
+        auto* service = ctx.GetService(name);
         if (!service) {
           throw std::runtime_error("No such service: " + name);
         }
-        Plan::PlanStartService(*ctx, pipeline, *service);
+        Plan::PlanStartService(ctx, pipeline, *service);
       }
       pipeline.Execute();
     }
@@ -201,26 +201,25 @@ void ExecuteCommands(std::shared_ptr<ApplicationContext> ctx, const Args& args) 
     } else {
       Pipeline pipeline(ctx);
       for (auto& name : args.downServicesList) {
-        auto service = ctx->GetService(name);
+        auto* service = ctx.GetService(name);
         if (!service) {
           throw std::runtime_error("No such service: " + name);
         }
-        Plan::PlanStopService(*ctx, pipeline, *service);
+        Plan::PlanStopService(ctx, pipeline, *service);
       }
       pipeline.Execute();
     }
   } else if (!args.runList.empty()) {
     Pipeline pipeline(ctx);
     for (const auto& taskName : args.runList) {
-      auto taskOpt = ctx->GetTask(taskName);
-      if (!taskOpt) {
+      auto* task = ctx.GetTask(taskName);
+      if (!task) {
         throw std::runtime_error("No such task: " + taskName);
       }
-      std::shared_ptr<Task> task = *taskOpt;
-      if (task->IsHidden()) {
+      if (task->hidden) {
         throw std::runtime_error("Can not run hidden task: " + taskName);
       }
-      Plan::PlanTask(*ctx, pipeline, task);
+      Plan::PlanTask(ctx, pipeline, *task);
     }
     pipeline.Execute();
   }
@@ -266,8 +265,8 @@ int main(int argc, char* argv[]) {
   }
 
   // Setup context
-  std::vector<std::shared_ptr<Service>> services;
-  std::vector<std::shared_ptr<Task>> tasks;
+  std::vector<std::unique_ptr<Service>> services;
+  std::vector<std::unique_ptr<Task>> tasks;
   fs::path environmentFile = currentPath / args.environmentFile;
   try {
     Parser::ParseEnvironmentYmlFile(environmentFile, env, services, tasks);
@@ -276,8 +275,7 @@ int main(int argc, char* argv[]) {
     return 1;
   }
 
-  std::shared_ptr<ApplicationContext> context = std::make_shared<ApplicationContext>(
-      std::move(currentPath), std::move(env), std::move(services), std::move(tasks));
+  ApplicationContext context(std::move(currentPath), std::move(env), std::move(services), std::move(tasks));
 
   // Run
   if (args.HasSpecificCommands()) {

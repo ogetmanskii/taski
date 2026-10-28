@@ -3,12 +3,12 @@
 #include <chrono>
 #include <exception>
 #include <format>
-#include <memory>
 #include <optional>
 #include <string>
 #include <unordered_set>
 #include <utility>
 #include <vector>
+#include <memory>
 
 #include "ApplicationContext.hpp"
 #include "action/Action.hpp"
@@ -22,14 +22,14 @@ namespace devkit {
 
 class Pipeline {
  public:
-  Pipeline(std::shared_ptr<ApplicationContext> appContext) : appContext(std::move(appContext)) {}
+  Pipeline(ApplicationContext& appContext) : appContext(appContext) {}
 
   bool InsertKey(const std::string& key) { return keys.insert(key).second; }
 
-  void PlanAction(std::shared_ptr<Action> action) { actions.push_back(action); }
+  void PlanAction(std::unique_ptr<Action> action) { actions.push_back(std::move(action)); }
 
-  void PlanPostAction(const std::string& key, std::shared_ptr<Action> action) {
-    postActions.push_back(std::make_pair(key, action));
+  void PlanPostAction(const std::string& key, std::unique_ptr<Action> action) {
+    postActions.push_back(std::make_pair(key, std::move(action)));
   }
 
   std::vector<ProcessDescriptor>& ActiveProcesses() {
@@ -45,9 +45,9 @@ class Pipeline {
   }
 
   void Execute() {
-    for (std::pair<std::string, std::shared_ptr<Action>> postAction : postActions) {
+    for (std::pair<std::string, std::unique_ptr<Action>>& postAction : postActions) {
       if (InsertKey(postAction.first)) {
-        actions.push_back(postAction.second);
+        actions.push_back(std::move(postAction.second));
       }
     }
     if (actions.empty()) {
@@ -69,7 +69,7 @@ class Pipeline {
         Console::Info("-- {}", action->Description());
       }
       try {
-        action->Run(*appContext, *this);
+        action->Run(appContext, *this);
       } catch (const std::exception& e) {
         std::string message = std::format("-- {} - failed: {}", action->Description(), e.what());
         Console::Info(message);
@@ -84,9 +84,9 @@ class Pipeline {
  private:
   std::optional<std::vector<ProcessDescriptor>> activeProcesses;
 
-  std::shared_ptr<ApplicationContext> appContext;
-  std::vector<std::shared_ptr<Action>> actions;
-  std::vector<std::pair<std::string /* key */, std::shared_ptr<Action>>> postActions;
+  ApplicationContext& appContext;
+  std::vector<std::unique_ptr<Action>> actions;
+  std::vector<std::pair<std::string /* key */, std::unique_ptr<Action>>> postActions;
   std::unordered_set<std::string> keys;
 };
 }  // namespace devkit
