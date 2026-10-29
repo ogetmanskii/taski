@@ -2,7 +2,6 @@
 
 #include <filesystem>
 #include <memory>
-#include <optional>
 #include <string>
 #include <unordered_map>
 #include <utility>
@@ -17,10 +16,12 @@ class ApplicationContext {
  private:
   const std::filesystem::path path;
   const std::unordered_map<std::string, std::string> env;
+
   const std::vector<std::unique_ptr<Service>> services;
   const std::vector<std::unique_ptr<Task>> tasks;
-  const std::unordered_map<std::string, Service*> nameToService;
-  const std::unordered_map<std::string, Task*> nameToTask;
+
+  const std::unordered_map<std::string, Service&> nameToService;
+  const std::unordered_map<std::string, Task&> nameToTask;
 
  public:
   ApplicationContext(std::filesystem::path path,
@@ -43,7 +44,7 @@ class ApplicationContext {
     if (it == nameToService.end()) {
       return nullptr;
     }
-    return it->second;
+    return &it->second;
   }
 
   Task* GetTask(const std::string& name) const {
@@ -51,22 +52,22 @@ class ApplicationContext {
     if (it == nameToTask.end()) {
       return nullptr;
     }
-    return it->second;
+    return &it->second;
   }
 
  private:
-  std::unordered_map<std::string, Service*> BuildNameToServiceMap() {
-    std::unordered_map<std::string, Service*> map;
+  std::unordered_map<std::string, Service&> BuildNameToServiceMap() {
+    std::unordered_map<std::string, Service&> map;
     for (auto& service : services) {
-      map[service->definition.name] = &*service;
+      map.emplace(service->definition.name, *service);
     }
     return map;
   }
 
-  std::unordered_map<std::string, Task*> BuildNameToTaskMap() {
-    std::unordered_map<std::string, Task*> map;
+  std::unordered_map<std::string, Task&> BuildNameToTaskMap() {
+    std::unordered_map<std::string, Task&> map;
     for (auto& task : tasks) {
-      map[task->name] = &*task;
+      map.emplace(task->name, *task);
     }
     return map;
   }
