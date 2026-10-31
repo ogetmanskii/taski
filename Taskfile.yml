@@ -1,0 +1,30 @@
+version: '3'
+tasks:
+  clean:
+    desc: Clean build folder
+    cmds:
+      - cmd: cmd /c rmdir /s /q build
+        ignore_error: true
+  install:
+    desc: Conan -> Install dependencies
+    cmds:
+      - conan install . --output-folder=build --build=missing -s build_type=Release
+      - conan install . --output-folder=build --build=missing -s build_type=Debug
+  configure:
+    desc: CMake -> Configure
+    deps:
+      - install
+    cmds:
+      - cmake -S . -B build
+  build-release:
+    desc: CMake -> Build Release artifacts
+    deps:
+      - configure
+    cmds:
+      - cmake --build build --config Release
+  build-debug:
+    desc: CMake -> Build Debug artifacts
+    deps:
+      - configure
+    cmds:
+      - cmake --build build --config Debug
