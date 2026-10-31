@@ -4,6 +4,7 @@ tasks:
     desc: Clean build folder
     cmds:
       - cmd: cmd /c rmdir /s /q build
+        platforms: [windows]
         ignore_error: true
   install:
     desc: Conan Install dependencies
