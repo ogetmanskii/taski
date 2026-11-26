@@ -37,6 +37,7 @@ void RunLoop(ApplicationContext& context) {
   ClearScreen();
   size_t serviceCount = context.GetServices().size();
   size_t taskCount = context.GetTasks().size();
+  int menuCursor = 0;
   while (true) {
     auto activeProcesses = GetActiveProcesses();
     std::vector<MenuItem> menu;
@@ -44,9 +45,9 @@ void RunLoop(ApplicationContext& context) {
     int startAllItemIdx = -1;
     int stopAllItemIdx = -1;
     if (serviceCount > 1) {
-      menu.push_back(MenuItem("Start All", "Start All Services", Plan::PlanStartAllServices));
+      menu.push_back(MenuItem("Start All", "", Plan::PlanStartAllServices));
       startAllItemIdx = menu.size() - 1;
-      menu.push_back(MenuItem("Stop All", "Stop All Services", Plan::PlanStopAllServices));
+      menu.push_back(MenuItem("Stop All", "", Plan::PlanStopAllServices));
       stopAllItemIdx = menu.size() - 1;
     }
 
@@ -58,13 +59,13 @@ void RunLoop(ApplicationContext& context) {
       if (status == ServiceStatus::UP) {
         noActiveServices = false;
         menu.push_back(MenuItem(
-            std::format("{} {}", serviceName, Color::Green("on")),
+            std::format("{} [{}]", serviceName, Color::Green("on")),
             std::format("Stop {}", serviceName),
             [&](ApplicationContext& ctx, Pipeline& pipeline) { Plan::PlanStopService(ctx, pipeline, *servicePtr); }));
       } else if (status == ServiceStatus::DOWN) {
         noInactiveServices = false;
         menu.push_back(MenuItem(
-            std::format("{} {}", serviceName, Color::Gray("off")),
+            std::format("{} [{}]", serviceName, Color::Gray("off")),
             std::format("Start {}", serviceName),
             [&](ApplicationContext& ctx, Pipeline& pipeline) { Plan::PlanStartService(ctx, pipeline, *servicePtr); }));
       } else {
@@ -84,14 +85,15 @@ void RunLoop(ApplicationContext& context) {
       if (taskPtr->hidden) {
         continue;
       }
-      menu.push_back(MenuItem(taskPtr->name, taskPtr->name, [&](ApplicationContext& ctx, Pipeline& pipeline) {
+      menu.push_back(MenuItem(taskPtr->name, taskPtr->description.value_or(""), [&](ApplicationContext& ctx, Pipeline& pipeline) {
         Plan::PlanTask(ctx, pipeline, *taskPtr);
       }));
     }
 
-    if (Menu::Show(menu, context)) {
-      while (!IsReturn(_getch())) {
-      }
+    if (!Menu::Show(menu, context, menuCursor)) {
+      break;
+    }
+    while (!IsReturn(_getch())) {
     }
     ClearScreen();
   }

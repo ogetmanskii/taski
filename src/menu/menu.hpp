@@ -13,6 +13,9 @@ class ApplicationContext;
 
 namespace devkit::Menu {
 
-bool Show(const std::vector<MenuItem>& items, ApplicationContext& appContext);
+// Показывает интерактивное меню. ioCursor — входное начальное и выходное
+// итоговое положение курсора: позиция выбранного пункта сохраняется между
+// отрисовками меню (позиционируется в пределах нового списка).
+bool Show(const std::vector<MenuItem>& items, ApplicationContext& appContext, int& ioCursor);
 
 }
