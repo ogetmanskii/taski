@@ -35,12 +35,11 @@ namespace devkit::Menu {
 
 void RunLoop(ApplicationContext& context) {
   ClearScreen();
-  size_t serviceCount = context.GetServices().size();
-  size_t taskCount = context.GetTasks().size();
-  int menuCursor = 0;
-  while (true) {
+  auto buildMenu = [&](std::vector<MenuItem>& menu) {
+    size_t serviceCount = context.GetServices().size();
+    size_t taskCount = context.GetTasks().size();
     auto activeProcesses = GetActiveProcesses();
-    std::vector<MenuItem> menu;
+    menu.clear();
     menu.reserve(serviceCount + taskCount + 2);
     int startAllItemIdx = -1;
     int stopAllItemIdx = -1;
@@ -89,8 +88,11 @@ void RunLoop(ApplicationContext& context) {
         Plan::PlanTask(ctx, pipeline, *taskPtr);
       }));
     }
+  };
 
-    if (!Menu::Show(menu, context, menuCursor)) {
+  int menuCursor = 0;
+  while (true) {
+    if (!Menu::Show(buildMenu, context, menuCursor)) {
       break;
     }
     while (!IsReturn(_getch())) {

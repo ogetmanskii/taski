@@ -42,7 +42,7 @@ constexpr std::string_view ERASE_LINE_SEQ = "\033[K";
 constexpr std::string_view HIDE_CURSOR_SEQ = "\033[?25l";
 constexpr std::string_view SHOW_CURSOR_SEQ = "\033[?25h";
 
-enum class MenuKey { None, Up, Down, Left, Right, Enter, Escape, Space, Quit, Resize, End };
+enum class MenuKey { None, Up, Down, Left, Right, Enter, Escape, Space, Refresh, Quit, Resize, End };
 
 // RawModeGuard включает raw-режим консоли на время отрисовки и опроса меню и
 // восстанавливает прежний режим при выходе из области видимости (в том числе
@@ -131,6 +131,11 @@ MenuKey ReadKey() {
       case 0x51:  // 'Q'
         if (key.uChar.UnicodeChar == L'q' || key.uChar.UnicodeChar == L'Q') {
           return MenuKey::Quit;
+        }
+        break;
+      case 0x52:  // 'R'
+        if (key.uChar.UnicodeChar == L'r' || key.uChar.UnicodeChar == L'R') {
+          return MenuKey::Refresh;
         }
         break;
       default:
@@ -301,6 +306,21 @@ struct MenuState {
     return {};
   }
 
+  // ClampState отбрасывает отмеченные пункты, вышедшие за границы списка
+  // после перестроения меню; курсор клампится в Render.
+  void ClampState() {
+    int total = static_cast<int>(items.size());
+    std::vector<int> kept;
+    for (int idx : selectedOrder) {
+      if (idx >= 0 && idx < total) {
+        kept.push_back(idx);
+      }
+    }
+    selectedOrder = std::move(kept);
+    selected.clear();
+    selected.insert(selectedOrder.begin(), selectedOrder.end());
+  }
+
   void Render() {
     FrameHome();
 
@@ -357,7 +377,7 @@ struct MenuState {
       TruncateToWidth(noticeLine, maxLineWidth);
       std::cout << noticeLine << ERASE_LINE_SEQ << MENU_EOL;
     }
-    std::string help = Color::Gray("↑/↓ move · space/←/→ select · enter run · q quit");
+    std::string help = Color::Gray("↑/↓ move · space/←/→ select · enter run · r refresh · q quit");
     TruncateToWidth(help, maxLineWidth);
     std::cout << help << ERASE_LINE_SEQ << MENU_EOL;
     FrameEnd();
@@ -369,16 +389,21 @@ struct MenuState {
 // Возвращает true, если что-то выбрано в меню.
 // Навигация: стрелки вверх/вниз — курсор, вправо — отметить, влево — снять
 // отметку, enter — запустить отмеченные в порядке выбора (или текущий пункт,
-// если не отмечено ничего), esc/q — выход.
+// если не отмечено ничего), r — перестроить меню, esc/q — выход.
 // ioCursor — позиция курсора между отрисовками: стартовое значение задаёт
 // начальную позицию, при выходе записывается итоговая (Render выполняет
 // клампинг в пределы нового списка).
-bool Show(const std::vector<MenuItem>& items, ApplicationContext& appContext, int& ioCursor) {
+bool Show(const std::function<void(std::vector<MenuItem>&)>& buildMenu,
+          ApplicationContext& appContext,
+          int& ioCursor) {
   HANDLE input = GetStdHandle(STD_INPUT_HANDLE);
   DWORD savedMode = 0;
   if (input == INVALID_HANDLE_VALUE || !GetConsoleMode(input, &savedMode)) {
     throw std::runtime_error("Menu requires an interactive terminal");
   }
+
+  std::vector<MenuItem> items;
+  buildMenu(items);
 
   MenuState state(items, ioCursor);
   bool anySelected = false;
@@ -420,6 +445,13 @@ bool Show(const std::vector<MenuItem>& items, ApplicationContext& appContext, in
 
         case MenuKey::Resize:
           break;
+
+        case MenuKey::Refresh: {
+          buildMenu(items);
+          state.ClampState();
+          state.notice = "menu refreshed";
+          break;
+        }
 
         case MenuKey::Enter: {
           std::vector<int> indices = state.BuildSelection();
