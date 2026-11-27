@@ -42,6 +42,8 @@ inline std::string Colored(const std::string& text, const std::string_view& colo
   return std::string(colorCode) + text + std::string(RESET);
 }
 
+inline std::string White(const std::string& text) { return Colored(text, WHITE); }
+
 inline std::string Green(const std::string& text) { return Colored(text, GREEN); }
 
 inline std::string Red(const std::string& text) { return Colored(text, RED); }
