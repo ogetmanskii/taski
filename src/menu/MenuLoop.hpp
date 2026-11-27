@@ -59,17 +59,17 @@ void RunLoop(ApplicationContext& context) {
         noActiveServices = false;
         menu.push_back(MenuItem(
             std::format("{} {}{}{}", serviceName, Color::White("["), Color::Green("on"), Color::White("]")),
-            std::format("Stop {}", serviceName),
+            "",
             [&](ApplicationContext& ctx, Pipeline& pipeline) { Plan::PlanStopService(ctx, pipeline, *servicePtr); }));
       } else if (status == ServiceStatus::DOWN) {
         noInactiveServices = false;
         menu.push_back(MenuItem(
             std::format("{} {}{}{}", serviceName, Color::White("["), Color::Gray("off"), Color::White("]")),
-            std::format("Start {}", serviceName),
+            "",
             [&](ApplicationContext& ctx, Pipeline& pipeline) { Plan::PlanStartService(ctx, pipeline, *servicePtr); }));
       } else {
         menu.push_back(
-            MenuItem(serviceName, std::format("Run {}", serviceName), [&](ApplicationContext& ctx, Pipeline& pipeline) {
+            MenuItem(serviceName, "", [&](ApplicationContext& ctx, Pipeline& pipeline) {
               Plan::PlanStartService(ctx, pipeline, *servicePtr);
             }));
       }
